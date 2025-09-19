@@ -17,7 +17,7 @@ export const StatsBar = ({ statistics }: StatsBarProps) => {
         </div>
         <div className="text-xs">
           <div className="text-muted-foreground">Gasoil</div>
-          <div className="font-semibold">{statistics.montantGasoil.toFixed(2)}€</div>
+          <div className="font-semibold">{statistics.montantGasoil.toFixed(2)} TND</div>
         </div>
       </Card>
 
@@ -27,7 +27,7 @@ export const StatsBar = ({ statistics }: StatsBarProps) => {
         </div>
         <div className="text-xs">
           <div className="text-muted-foreground">Espèces</div>
-          <div className="font-semibold">{statistics.montantEspeces.toFixed(2)}€</div>
+          <div className="font-semibold">{statistics.montantEspeces.toFixed(2)} TND</div>
         </div>
       </Card>
 

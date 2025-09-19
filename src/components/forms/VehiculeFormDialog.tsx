@@ -62,10 +62,10 @@ export const VehiculeFormDialog = ({
       return;
     }
 
-    // Validation de l'immatriculation (format basique français)
-    const immatRegex = /^[A-Z]{1,2}[-\s]?\d{3}[-\s]?[A-Z]{1,3}$/i;
+    // Validation de l'immatriculation tunisienne (format: 123 TUN 1234)
+    const immatRegex = /^\d{1,3}[-\s]?TUN[-\s]?\d{1,4}$/i;
     if (!immatRegex.test(formData.immatriculation.replace(/\s/g, ''))) {
-      alert('Veuillez saisir une immatriculation valide (ex: AB-123-CD)');
+      alert('Veuillez saisir une immatriculation tunisienne valide (ex: 123 TUN 1234)');
       return;
     }
 
@@ -92,7 +92,7 @@ export const VehiculeFormDialog = ({
               id="immatriculation"
               value={formData.immatriculation}
               onChange={(e) => handleInputChange('immatriculation', e.target.value.toUpperCase())}
-              placeholder="AB-123-CD"
+              placeholder="123 TUN 1234"
               required
             />
           </div>
@@ -149,7 +149,7 @@ export const VehiculeFormDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="cout">Coût de référence (€/km)</Label>
+            <Label htmlFor="cout">Coût de référence (TND/km)</Label>
             <Input
               id="cout"
               type="number"
@@ -157,7 +157,7 @@ export const VehiculeFormDialog = ({
               min="0"
               value={formData.coutKmReference || ''}
               onChange={(e) => handleInputChange('coutKmReference', parseFloat(e.target.value) || undefined)}
-              placeholder="0.35"
+              placeholder="0.85"
             />
           </div>
 

@@ -103,7 +103,7 @@ export const VehiculesTab = ({
         {filteredVehicules.map((vehicule) => (
           <Card key={vehicule.id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-7 gap-4 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-7 gap-4 items-center">
                 <div className="md:col-span-2 flex items-center space-x-3">
                   <div className="bg-primary rounded-lg p-2">
                     <Car className="h-4 w-4 text-primary-foreground" />
@@ -111,8 +111,13 @@ export const VehiculesTab = ({
                   <div>
                     <div className="font-semibold">{vehicule.immatriculation}</div>
                     <div className="text-sm text-muted-foreground">
-                      {vehicule.marque} {vehicule.modele}
+                      {vehicule.marque} {vehicule.modele} {vehicule.annee && `(${vehicule.annee})`}
                     </div>
+                    {vehicule.couleur && (
+                      <div className="text-xs text-muted-foreground">
+                        {vehicule.couleur}
+                      </div>
+                    )}
                   </div>
                 </div>
                 
@@ -120,6 +125,11 @@ export const VehiculesTab = ({
                   <Badge className={vehicule.statut === 'actif' ? 'bg-success text-success-foreground' : 'bg-muted text-muted-foreground'}>
                     {vehicule.statut === 'actif' ? 'Actif' : 'Inactif'}
                   </Badge>
+                  {vehicule.typeCarburant && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {vehicule.typeCarburant}
+                    </div>
+                  )}
                 </div>
 
                 <div className="text-sm">
@@ -129,13 +139,37 @@ export const VehiculesTab = ({
                       <div className="font-medium">{vehicule.consommationReference} L/100km</div>
                     </div>
                   )}
+                  {vehicule.capaciteReservoir && (
+                    <div className="text-xs text-muted-foreground">
+                      Réservoir: {vehicule.capaciteReservoir}L
+                    </div>
+                  )}
                 </div>
 
                 <div className="text-sm">
                   {vehicule.coutKmReference && (
                     <div>
                       <span className="text-muted-foreground">Coût/km:</span>
-                      <div className="font-medium">{vehicule.coutKmReference.toFixed(2)}€</div>
+                      <div className="font-medium">{vehicule.coutKmReference.toFixed(2)} TND</div>
+                    </div>
+                  )}
+                  {vehicule.kilometrage && (
+                    <div className="text-xs text-muted-foreground">
+                      {vehicule.kilometrage.toLocaleString()} km
+                    </div>
+                  )}
+                </div>
+
+                <div className="text-sm">
+                  {vehicule.prixAchat && (
+                    <div>
+                      <span className="text-muted-foreground">Prix d'achat:</span>
+                      <div className="font-medium">{vehicule.prixAchat.toLocaleString()} TND</div>
+                    </div>
+                  )}
+                  {vehicule.dateAchat && (
+                    <div className="text-xs text-muted-foreground">
+                      Acheté le {new Date(vehicule.dateAchat).toLocaleDateString()}
                     </div>
                   )}
                 </div>

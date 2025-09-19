@@ -112,12 +112,12 @@ export const BonsTab = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-8 gap-4">
             <div className="md:col-span-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
-                  placeholder="Rechercher..."
+                  placeholder="Rechercher numéro, notes..."
                   value={filters.search || ''}
                   onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
                   className="pl-9"
@@ -127,14 +127,14 @@ export const BonsTab = ({
             
             <Input
               type="date"
-              placeholder="Du"
+              placeholder="Date de début"
               value={filters.dateFrom || ''}
               onChange={(e) => onFiltersChange({ ...filters, dateFrom: e.target.value })}
             />
             
             <Input
               type="date"
-              placeholder="Au"
+              placeholder="Date de fin"
               value={filters.dateTo || ''}
               onChange={(e) => onFiltersChange({ ...filters, dateTo: e.target.value })}
             />
@@ -154,6 +154,40 @@ export const BonsTab = ({
             </Select>
 
             <Select
+              value={filters.chauffeurId || 'all'}
+              onValueChange={(value) => onFiltersChange({ ...filters, chauffeurId: value === 'all' ? undefined : value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Chauffeur" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous chauffeurs</SelectItem>
+                {chauffeurs.map((chauffeur) => (
+                  <SelectItem key={chauffeur.id} value={chauffeur.id}>
+                    {chauffeur.prenom} {chauffeur.nom}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filters.vehiculeId || 'all'}
+              onValueChange={(value) => onFiltersChange({ ...filters, vehiculeId: value === 'all' ? undefined : value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Véhicule" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous véhicules</SelectItem>
+                {vehicules.map((vehicule) => (
+                  <SelectItem key={vehicule.id} value={vehicule.id}>
+                    {vehicule.immatriculation}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
               value={filters.status || 'all'}
               onValueChange={(value) => onFiltersChange({ ...filters, status: value === 'all' ? undefined : value as any })}
             >
@@ -167,11 +201,20 @@ export const BonsTab = ({
                 <SelectItem value="validated">Validé</SelectItem>
               </SelectContent>
             </Select>
+
+            <Button 
+              variant="outline" 
+              onClick={() => onFiltersChange({})}
+              className="whitespace-nowrap"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Réinitialiser
+            </Button>
           </div>
 
           <div className="flex items-center justify-between mt-4">
             <div className="text-sm text-muted-foreground">
-              {bons.length} bon(s) • Total: {statistics.totalMontant.toFixed(2)}€
+              {bons.length} bon(s) • Total: {statistics.totalMontant.toFixed(2)} TND
             </div>
             <div className="flex space-x-2">
               <Button variant="outline" size="sm">
@@ -208,7 +251,7 @@ export const BonsTab = ({
                   </div>
 
                   <div className="text-center">
-                    <div className="font-semibold">{bon.montant.toFixed(2)}€</div>
+                    <div className="font-semibold">{bon.montant.toFixed(2)} TND</div>
                   </div>
 
                   <div className="text-sm">

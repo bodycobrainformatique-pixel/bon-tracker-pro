@@ -27,6 +27,13 @@ export interface Chauffeur {
   prenom: string;
   matricule: string;
   telephone: string;
+  email?: string;
+  adresse?: string;
+  dateNaissance?: string;
+  cinNumber?: string; // Carte d'identité nationale tunisienne
+  permisNumber?: string;
+  dateEmbauche?: string;
+  salaire?: number;
   statut: 'actif' | 'inactif';
   createdAt: string;
   updatedAt: string;
@@ -37,9 +44,17 @@ export interface Vehicule {
   immatriculation: string;
   marque: string;
   modele: string;
+  annee?: number;
+  couleur?: string;
+  typeCarburant?: 'gasoil' | 'essence' | 'hybride' | 'electrique';
+  capaciteReservoir?: number; // en litres
+  kilometrage?: number; // km actuel
+  dateAchat?: string;
+  prixAchat?: number; // en TND
+  numeroSerie?: string;
   statut: 'actif' | 'inactif';
   consommationReference?: number; // L/100km
-  coutKmReference?: number; // €/km
+  coutKmReference?: number; // TND/km
   createdAt: string;
   updatedAt: string;
 }

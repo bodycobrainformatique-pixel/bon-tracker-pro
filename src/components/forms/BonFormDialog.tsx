@@ -151,7 +151,7 @@ export const BonFormDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="montant">Montant (€) *</Label>
+              <Label htmlFor="montant">Montant (TND) *</Label>
               <Input
                 id="montant"
                 type="number"
