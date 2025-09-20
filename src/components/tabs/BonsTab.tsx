@@ -17,9 +17,9 @@ interface BonsTabProps {
   vehicules: Vehicule[];
   filters: BonFilters;
   onFiltersChange: (filters: BonFilters) => void;
-  onCreateBon: (bon: Omit<Bon, 'id' | 'createdAt' | 'updatedAt'>) => Bon;
-  onUpdateBon: (id: string, updates: Partial<Bon>) => void;
-  onDeleteBon: (id: string) => void;
+  onCreateBon: (bon: Omit<Bon, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Bon>;
+  onUpdateBon: (id: string, updates: Partial<Bon>) => Promise<void>;
+  onDeleteBon: (id: string) => Promise<void>;
   statistics: Statistics;
 }
 
@@ -37,9 +37,9 @@ export const BonsTab = ({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBon, setEditingBon] = useState<Bon | null>(null);
 
-  const handleCreateBon = (bonData: Omit<Bon, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleCreateBon = async (bonData: Omit<Bon, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      onCreateBon(bonData);
+      await onCreateBon(bonData);
       toast.success('Bon créé avec succès');
       setIsFormOpen(false);
     } catch (error) {
@@ -47,11 +47,11 @@ export const BonsTab = ({
     }
   };
 
-  const handleUpdateBon = (bonData: Omit<Bon, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleUpdateBon = async (bonData: Omit<Bon, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!editingBon) return;
     
     try {
-      onUpdateBon(editingBon.id, bonData);
+      await onUpdateBon(editingBon.id, bonData);
       toast.success('Bon mis à jour avec succès');
       setEditingBon(null);
     } catch (error) {
@@ -59,10 +59,10 @@ export const BonsTab = ({
     }
   };
 
-  const handleDeleteBon = (id: string) => {
+  const handleDeleteBon = async (id: string) => {
     if (confirm('Êtes-vous sûr de vouloir supprimer ce bon ?')) {
       try {
-        onDeleteBon(id);
+        await onDeleteBon(id);
         toast.success('Bon supprimé avec succès');
       } catch (error) {
         toast.error('Erreur lors de la suppression du bon');

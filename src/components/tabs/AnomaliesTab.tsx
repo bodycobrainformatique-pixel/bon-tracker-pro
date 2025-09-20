@@ -18,7 +18,7 @@ interface AnomaliesTabProps {
   bons: Bon[];
   chauffeurs: Chauffeur[];
   vehicules: Vehicule[];
-  onUpdateAnomalie: (id: string, updates: Partial<Anomalie>) => void;
+  onUpdateAnomalie: (id: string, updates: Partial<Anomalie>) => Promise<void>;
 }
 
 export const AnomaliesTab = ({
@@ -34,10 +34,10 @@ export const AnomaliesTab = ({
   const [selectedAnomalie, setSelectedAnomalie] = useState<Anomalie | null>(null);
   const [commentaire, setCommentaire] = useState('');
 
-  const handleUpdateStatut = (id: string, statut: AnomalieStatut, commentaires?: string) => {
+  const handleUpdateStatut = async (id: string, statut: AnomalieStatut, commentaires?: string) => {
     try {
-      onUpdateAnomalie(id, { statut, commentaires });
-      toast.success('Anomalie mise à jour avec succès');
+      await onUpdateAnomalie(id, { statut, commentaires });
+      toast.success('Statut de l\'anomalie mis à jour');
       setSelectedAnomalie(null);
       setCommentaire('');
     } catch (error) {

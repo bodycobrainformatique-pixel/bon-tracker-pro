@@ -170,18 +170,7 @@ export default function AdminDashboard() {
                 filters={{}}
                 onFiltersChange={() => {}}
                 statistics={getStatistics(bons)}
-                onCreateBon={(bon) => {
-                  createBon(bon).catch(error => {
-                    console.error('Error creating bon:', error);
-                  });
-                  // Return a temporary object for immediate UI update
-                  return {
-                    ...bon,
-                    id: Math.random().toString(36).substr(2, 9),
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                  };
-                }}
+                onCreateBon={createBon}
                 onUpdateBon={updateBon}
                 onDeleteBon={deleteBon}
               />
@@ -190,18 +179,7 @@ export default function AdminDashboard() {
             <TabsContent value="chauffeurs">
               <ChauffeursTab
                 chauffeurs={chauffeurs}
-                onCreateChauffeur={(chauffeur) => {
-                  createChauffeur(chauffeur).catch(error => {
-                    console.error('Error creating chauffeur:', error);
-                  });
-                  // Return a temporary object for immediate UI update
-                  return {
-                    ...chauffeur,
-                    id: Math.random().toString(36).substr(2, 9),
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                  };
-                }}
+                onCreateChauffeur={createChauffeur}
                 onUpdateChauffeur={updateChauffeur}
                 onDeleteChauffeur={deleteChauffeur}
               />
@@ -210,18 +188,7 @@ export default function AdminDashboard() {
             <TabsContent value="vehicules">
               <VehiculesTab
                 vehicules={vehicules}
-                onCreateVehicule={(vehicule) => {
-                  createVehicule(vehicule).catch(error => {
-                    console.error('Error creating vehicule:', error);
-                  });
-                  // Return a temporary object for immediate UI update
-                  return {
-                    ...vehicule,
-                    id: Math.random().toString(36).substr(2, 9),
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                  };
-                }}
+                onCreateVehicule={createVehicule}
                 onUpdateVehicule={updateVehicule}
                 onDeleteVehicule={deleteVehicule}
               />

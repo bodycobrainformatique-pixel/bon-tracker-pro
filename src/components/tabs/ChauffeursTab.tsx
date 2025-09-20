@@ -12,9 +12,9 @@ import { toast } from 'sonner';
 
 interface ChauffeursTabProps {
   chauffeurs: Chauffeur[];
-  onCreateChauffeur: (chauffeur: Omit<Chauffeur, 'id' | 'createdAt' | 'updatedAt'>) => Chauffeur;
-  onUpdateChauffeur: (id: string, updates: Partial<Chauffeur>) => void;
-  onDeleteChauffeur: (id: string) => void;
+  onCreateChauffeur: (chauffeur: Omit<Chauffeur, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Chauffeur>;
+  onUpdateChauffeur: (id: string, updates: Partial<Chauffeur>) => Promise<void>;
+  onDeleteChauffeur: (id: string) => Promise<void>;
 }
 
 export const ChauffeursTab = ({
@@ -27,9 +27,9 @@ export const ChauffeursTab = ({
   const [editingChauffeur, setEditingChauffeur] = useState<Chauffeur | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const handleCreateChauffeur = (chauffeurData: Omit<Chauffeur, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleCreateChauffeur = async (chauffeurData: Omit<Chauffeur, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      onCreateChauffeur(chauffeurData);
+      await onCreateChauffeur(chauffeurData);
       toast.success('Chauffeur créé avec succès');
       setIsFormOpen(false);
     } catch (error) {
@@ -37,11 +37,11 @@ export const ChauffeursTab = ({
     }
   };
 
-  const handleUpdateChauffeur = (chauffeurData: Omit<Chauffeur, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleUpdateChauffeur = async (chauffeurData: Omit<Chauffeur, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!editingChauffeur) return;
     
     try {
-      onUpdateChauffeur(editingChauffeur.id, chauffeurData);
+      await onUpdateChauffeur(editingChauffeur.id, chauffeurData);
       toast.success('Chauffeur mis à jour avec succès');
       setEditingChauffeur(null);
     } catch (error) {
@@ -49,10 +49,10 @@ export const ChauffeursTab = ({
     }
   };
 
-  const handleDeleteChauffeur = (id: string) => {
+  const handleDeleteChauffeur = async (id: string) => {
     if (confirm('Êtes-vous sûr de vouloir supprimer ce chauffeur ?')) {
       try {
-        onDeleteChauffeur(id);
+        await onDeleteChauffeur(id);
         toast.success('Chauffeur supprimé avec succès');
       } catch (error) {
         toast.error('Erreur lors de la suppression du chauffeur');

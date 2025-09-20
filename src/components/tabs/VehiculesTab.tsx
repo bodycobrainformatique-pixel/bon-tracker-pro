@@ -12,9 +12,9 @@ import { toast } from 'sonner';
 
 interface VehiculesTabProps {
   vehicules: Vehicule[];
-  onCreateVehicule: (vehicule: Omit<Vehicule, 'id' | 'createdAt' | 'updatedAt'>) => Vehicule;
-  onUpdateVehicule: (id: string, updates: Partial<Vehicule>) => void;
-  onDeleteVehicule: (id: string) => void;
+  onCreateVehicule: (vehicule: Omit<Vehicule, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Vehicule>;
+  onUpdateVehicule: (id: string, updates: Partial<Vehicule>) => Promise<void>;
+  onDeleteVehicule: (id: string) => Promise<void>;
 }
 
 export const VehiculesTab = ({
@@ -27,9 +27,9 @@ export const VehiculesTab = ({
   const [editingVehicule, setEditingVehicule] = useState<Vehicule | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const handleCreateVehicule = (vehiculeData: Omit<Vehicule, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleCreateVehicule = async (vehiculeData: Omit<Vehicule, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      onCreateVehicule(vehiculeData);
+      await onCreateVehicule(vehiculeData);
       toast.success('Véhicule créé avec succès');
       setIsFormOpen(false);
     } catch (error) {
@@ -37,11 +37,11 @@ export const VehiculesTab = ({
     }
   };
 
-  const handleUpdateVehicule = (vehiculeData: Omit<Vehicule, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleUpdateVehicule = async (vehiculeData: Omit<Vehicule, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!editingVehicule) return;
     
     try {
-      onUpdateVehicule(editingVehicule.id, vehiculeData);
+      await onUpdateVehicule(editingVehicule.id, vehiculeData);
       toast.success('Véhicule mis à jour avec succès');
       setEditingVehicule(null);
     } catch (error) {
@@ -49,10 +49,10 @@ export const VehiculesTab = ({
     }
   };
 
-  const handleDeleteVehicule = (id: string) => {
+  const handleDeleteVehicule = async (id: string) => {
     if (confirm('Êtes-vous sûr de vouloir supprimer ce véhicule ?')) {
       try {
-        onDeleteVehicule(id);
+        await onDeleteVehicule(id);
         toast.success('Véhicule supprimé avec succès');
       } catch (error) {
         toast.error('Erreur lors de la suppression du véhicule');

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTracabilityData } from '@/hooks/useTracabilityData';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { BonFilters } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -42,10 +41,10 @@ export const TracabilityApp = () => {
     deleteVehicule,
     updateAnomalie,
     getFilteredBons,
-    getStatistics
-  } = useTracabilityData();
-
-  const { syncWithLocalStorage, saveCurrentDataToSupabase } = useSupabaseData();
+    getStatistics,
+    syncWithLocalStorage,
+    saveCurrentDataToSupabase
+  } = useSupabaseData();
 
   const [activeTab, setActiveTab] = useState('bons');
   const [bonFilters, setBonFilters] = useState<BonFilters>({});
