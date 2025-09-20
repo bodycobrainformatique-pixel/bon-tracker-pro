@@ -8,7 +8,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { Vehicule } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Calendar, Car } from 'lucide-react';
+import { Download, Calendar, Car, RefreshCw } from 'lucide-react';
 
 interface DailyStats {
   vehicule_id: string;
@@ -37,6 +37,8 @@ export const RapportsTab = ({ vehicules }: RapportsTabProps) => {
     
     setLoading(true);
     try {
+      console.log('📊 Loading daily stats for vehicle:', selectedVehiculeId);
+      
       let query = supabase
         .from('v_vehicule_daily_stats')
         .select('*')
@@ -53,8 +55,10 @@ export const RapportsTab = ({ vehicules }: RapportsTabProps) => {
       const { data, error } = await query;
 
       if (error) throw error;
+      console.log('📊 Daily stats loaded:', data?.length || 0, 'records');
       setDailyStats(data || []);
     } catch (error: any) {
+      console.error('❌ Error loading daily stats:', error);
       toast({
         variant: "destructive",
         title: "Erreur",
@@ -64,6 +68,28 @@ export const RapportsTab = ({ vehicules }: RapportsTabProps) => {
       setLoading(false);
     }
   };
+
+  // Real-time subscription to update reports when bons change
+  useEffect(() => {
+    console.log('🔔 Setting up real-time subscription for reports');
+    
+    const channel = supabase
+      .channel('reports-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bons' }, (payload) => {
+        console.log('📊 Bons changed, refreshing reports data:', payload.eventType);
+        if (selectedVehiculeId) {
+          loadDailyStats();
+        }
+      })
+      .subscribe((status) => {
+        console.log('📡 Reports subscription status:', status);
+      });
+
+    return () => {
+      console.log('🛑 Removing reports subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [selectedVehiculeId]);
 
   useEffect(() => {
     if (selectedVehiculeId) {
@@ -162,14 +188,25 @@ export const RapportsTab = ({ vehicules }: RapportsTabProps) => {
 
             <div className="space-y-2">
               <Label>&nbsp;</Label>
-              <Button 
-                onClick={exportCSV} 
-                disabled={!selectedVehiculeId || dailyStats.length === 0}
-                className="w-full"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Exporter CSV
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => loadDailyStats()} 
+                  disabled={!selectedVehiculeId}
+                  variant="outline"
+                  size="sm"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Actualiser
+                </Button>
+                <Button 
+                  onClick={exportCSV} 
+                  disabled={!selectedVehiculeId || dailyStats.length === 0}
+                  size="sm"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  CSV
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -304,7 +341,10 @@ export const RapportsTab = ({ vehicules }: RapportsTabProps) => {
           {loading && (
             <Card>
               <CardContent className="py-8">
-                <div className="text-center">Chargement des statistiques...</div>
+                <div className="flex items-center justify-center gap-2">
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  <span>Chargement des statistiques...</span>
+                </div>
               </CardContent>
             </Card>
           )}

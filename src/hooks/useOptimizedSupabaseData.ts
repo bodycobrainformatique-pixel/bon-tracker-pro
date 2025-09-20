@@ -185,30 +185,37 @@ export const useOptimizedSupabaseData = () => {
     }
   };
 
-  // Real-time subscriptions setup
+  // Real-time subscriptions with better performance
   useEffect(() => {
     // Load initial data
     loadInitialData();
 
-    // Setup single channel for all real-time updates
+    // Setup single channel for all real-time updates with debug logging
     const channel = supabase
       .channel('app-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bons' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bons' }, (payload) => {
+        console.log('🔄 Bon change detected:', payload.eventType);
         loadInitialData();
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'chauffeurs' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chauffeurs' }, (payload) => {
+        console.log('🔄 Chauffeur change detected:', payload.eventType);
         loadInitialData();
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicules' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicules' }, (payload) => {
+        console.log('🔄 Vehicule change detected:', payload.eventType);
         loadInitialData();
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'anomalies' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'anomalies' }, (payload) => {
+        console.log('🔄 Anomalie change detected:', payload.eventType);
         loadInitialData();
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Realtime subscription status:', status);
+      });
 
     // Cleanup
     return () => {
+      console.log('🛑 Removing realtime subscription');
       supabase.removeChannel(channel);
     };
   }, []);
@@ -349,7 +356,7 @@ export const useOptimizedSupabaseData = () => {
     }
   };
 
-  // Bon operations with automatic fuel type assignment
+  // Bon operations with automatic fuel type assignment and optimistic updates
   const createBon = async (bonData: Omit<Bon, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
       // Get vehicle fuel type to ensure consistency
@@ -358,6 +365,8 @@ export const useOptimizedSupabaseData = () => {
         ...bonData,
         type: vehicule?.typeCarburant || bonData.type // Auto-assign from vehicle
       };
+
+      console.log('💾 Creating bon with data:', finalBonData);
 
       const { data, error } = await supabase
         .from('bons')
@@ -375,9 +384,17 @@ export const useOptimizedSupabaseData = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error creating bon:', error);
+        throw error;
+      }
+      
+      console.log('✅ Bon created successfully:', data);
       
       const newBon = mapDbBonToBon(data);
+      
+      // Optimistic update - add to local state immediately
+      setBons(prev => [newBon, ...prev]);
       
       // Automatically detect anomalies for the new bon
       const detectedAnomalies = detectAnomalies(newBon, bons, chauffeurs, vehicules);
@@ -394,13 +411,15 @@ export const useOptimizedSupabaseData = () => {
 
       return newBon;
     } catch (error) {
-      console.error('Erreur création bon:', error);
+      console.error('❌ Erreur création bon:', error);
       throw error;
     }
   };
 
   const updateBon = async (id: string, bonData: Partial<Bon>) => {
     try {
+      console.log('📝 Updating bon:', id, bonData);
+      
       const { data, error } = await supabase
         .from('bons')
         .update({
@@ -417,24 +436,47 @@ export const useOptimizedSupabaseData = () => {
         .select()
         .single();
 
-      if (error) throw error;
-      return mapDbBonToBon(data);
+      if (error) {
+        console.error('❌ Error updating bon:', error);
+        throw error;
+      }
+      
+      console.log('✅ Bon updated successfully:', data);
+      
+      const updatedBon = mapDbBonToBon(data);
+      
+      // Optimistic update - update in local state immediately
+      setBons(prev => prev.map(b => b.id === id ? updatedBon : b));
+      
+      return updatedBon;
     } catch (error) {
-      console.error('Erreur mise à jour bon:', error);
+      console.error('❌ Erreur mise à jour bon:', error);
       throw error;
     }
   };
 
   const deleteBon = async (id: string) => {
     try {
+      console.log('🗑️ Deleting bon:', id);
+      
+      // Optimistic update - remove from local state immediately
+      setBons(prev => prev.filter(b => b.id !== id));
+      
       const { error } = await supabase
         .from('bons')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error deleting bon:', error);
+        // Revert optimistic update
+        loadInitialData();
+        throw error;
+      }
+      
+      console.log('✅ Bon deleted successfully');
     } catch (error) {
-      console.error('Erreur suppression bon:', error);
+      console.error('❌ Erreur suppression bon:', error);
       throw error;
     }
   };
