@@ -10,7 +10,7 @@ import { BonsTab } from './tabs/BonsTab';
 import { ChauffeursTab } from './tabs/ChauffeursTab';
 import { VehiculesTab } from './tabs/VehiculesTab';
 import { AnomaliesTab } from './tabs/AnomaliesTab';
-import { ParametresTab } from './tabs/ParametresTab';
+import { RapportsTab } from './tabs/RapportsTab';
 import { StatsBar } from './StatsBar';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -174,7 +174,7 @@ export const TracabilityApp = () => {
       {/* Navigation Tabs */}
       <div className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-[750px]">
+          <TabsList className="grid w-full grid-cols-6 lg:w-[900px]">
             <TabsTrigger value="bons" className="flex items-center space-x-2">
               <FileText className="h-4 w-4" />
               <span>Bons</span>
@@ -195,6 +195,10 @@ export const TracabilityApp = () => {
                   {anomalies.filter(a => a.statut === 'a_verifier').length}
                 </span>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="rapports" className="flex items-center space-x-2">
+              <FileText className="h-4 w-4" />
+              <span>Rapports</span>
             </TabsTrigger>
             <TabsTrigger value="parametres" className="flex items-center space-x-2">
               <Settings className="h-4 w-4" />
@@ -242,6 +246,10 @@ export const TracabilityApp = () => {
               vehicules={vehicules}
               onUpdateAnomalie={updateAnomalie}
             />
+          </TabsContent>
+
+          <TabsContent value="rapports" className="space-y-6">
+            <RapportsTab vehicules={vehicules} />
           </TabsContent>
 
           <TabsContent value="parametres" className="space-y-6">

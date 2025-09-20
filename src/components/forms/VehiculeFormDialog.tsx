@@ -23,52 +23,40 @@ export const VehiculeFormDialog = ({
   vehicule
 }: VehiculeFormDialogProps) => {
   const { toast } = useToast();
-  const [formData, setFormData] = useState<Omit<Vehicule, 'id' | 'createdAt' | 'updatedAt'>>({
+  const [formData, setFormData] = useState({
     immatriculation: '',
+    type_carburant: 'gasoil' as 'gasoil' | 'essence' | 'gasoil_50',
     marque: '',
     modele: '',
-    annee: new Date().getFullYear(),
+    annee: undefined as number | undefined,
     couleur: '',
-    typeCarburant: 'gasoil',
-    capaciteReservoir: 50,
-    kilometrage: 0,
-    dateAchat: '',
-    prixAchat: 0,
-    numeroSerie: '',
-    statut: 'actif'
+    capacite_reservoir: undefined as number | undefined,
+    notes: ''
   });
 
   useEffect(() => {
     if (vehicule) {
       setFormData({
         immatriculation: vehicule.immatriculation,
-        marque: vehicule.marque,
-        modele: vehicule.modele,
-        annee: vehicule.annee || new Date().getFullYear(),
+        type_carburant: vehicule.typeCarburant || 'gasoil',
+        marque: vehicule.marque || '',
+        modele: vehicule.modele || '',
+        annee: vehicule.annee,
         couleur: vehicule.couleur || '',
-        typeCarburant: vehicule.typeCarburant || 'gasoil',
-        capaciteReservoir: vehicule.capaciteReservoir || 50,
-        kilometrage: vehicule.kilometrage || 0,
-        dateAchat: vehicule.dateAchat || '',
-        prixAchat: vehicule.prixAchat || 0,
-        numeroSerie: vehicule.numeroSerie || '',
-        statut: vehicule.statut
+        capacite_reservoir: vehicule.capaciteReservoir,
+        notes: vehicule.numeroSerie || ''
       });
     } else {
       // Reset pour nouveau véhicule
       setFormData({
         immatriculation: '',
+        type_carburant: 'gasoil',
         marque: '',
         modele: '',
-        annee: new Date().getFullYear(),
+        annee: undefined,
         couleur: '',
-        typeCarburant: 'gasoil',
-        capaciteReservoir: 50,
-        kilometrage: 0,
-        dateAchat: '',
-        prixAchat: 0,
-        numeroSerie: '',
-        statut: 'actif'
+        capacite_reservoir: undefined,
+        notes: ''
       });
     }
   }, [vehicule, isOpen]);
@@ -76,61 +64,50 @@ export const VehiculeFormDialog = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation basique
-    if (!formData.immatriculation || !formData.marque || !formData.modele || !formData.couleur) {
+    // Validation basique - seulement immatriculation et type carburant obligatoires
+    if (!formData.immatriculation || !formData.type_carburant) {
       toast({
         variant: "destructive",
         title: "Erreur de validation",
-        description: "Veuillez remplir tous les champs obligatoires"
+        description: "L'immatriculation et le type de carburant sont obligatoires"
       });
       return;
     }
 
-    // Validation de l'immatriculation tunisienne (format: 123 TUN 1234)
-    const immatRegex = /^\d{1,3}[-\s]?TUN[-\s]?\d{1,4}$/i;
-    if (!immatRegex.test(formData.immatriculation.replace(/\s/g, ''))) {
+    // Validation optionnelle de l'année si renseignée
+    if (formData.annee && (formData.annee < 1900 || formData.annee > new Date().getFullYear() + 1)) {
       toast({
         variant: "destructive",
-        title: "Erreur de validation",
-        description: "Veuillez saisir une immatriculation tunisienne valide (ex: 123 TUN 1234)"
+        title: "Année invalide",
+        description: "L'année doit être comprise entre 1900 et l'année prochaine"
       });
       return;
     }
 
-    // Validation des champs numériques
-    if (!formData.annee || formData.annee < 1900 || formData.annee > new Date().getFullYear() + 1) {
+    // Validation optionnelle de la capacité si renseignée
+    if (formData.capacite_reservoir && (formData.capacite_reservoir <= 0 || formData.capacite_reservoir > 1000)) {
       toast({
         variant: "destructive",
-        title: "Erreur de validation",
-        description: "Veuillez saisir une année valide"
+        title: "Capacité de réservoir invalide",
+        description: "La capacité doit être comprise entre 1 et 1000 litres"
       });
       return;
     }
 
-    if (!formData.capaciteReservoir || formData.capaciteReservoir <= 0) {
-      toast({
-        variant: "destructive",
-        title: "Erreur de validation",
-        description: "La capacité du réservoir doit être supérieure à 0"
-      });
-      return;
-    }
-
-    if (!formData.prixAchat || formData.prixAchat < 0) {
-      toast({
-        variant: "destructive",
-        title: "Erreur de validation",
-        description: "Le prix d'achat doit être supérieur ou égal à 0"
-      });
-      return;
-    }
-
-    // Préparer les données pour l'envoi
+    // Map to expected Vehicule interface
     const submitData = {
-      ...formData,
-      // Convertir les champs vides en null pour les champs optionnels
-      dateAchat: formData.dateAchat || null,
-      numeroSerie: formData.numeroSerie || null
+      immatriculation: formData.immatriculation,
+      marque: formData.marque || '',
+      modele: formData.modele || '',
+      annee: formData.annee,
+      couleur: formData.couleur || '',
+      typeCarburant: formData.type_carburant,
+      capaciteReservoir: formData.capacite_reservoir,
+      kilometrage: 0, // Auto-computed from bons
+      dateAchat: '',
+      prixAchat: 0,
+      numeroSerie: formData.notes || '',
+      statut: 'actif' as const
     };
 
     onSubmit(submitData);
@@ -163,57 +140,12 @@ export const VehiculeFormDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="marque">Marque *</Label>
-              <Input
-                id="marque"
-                value={formData.marque}
-                onChange={(e) => handleInputChange('marque', e.target.value)}
-                placeholder="Renault"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="modele">Modèle *</Label>
-              <Input
-                id="modele"
-                value={formData.modele}
-                onChange={(e) => handleInputChange('modele', e.target.value)}
-                placeholder="Master"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="annee">Année *</Label>
-              <Input
-                id="annee"
-                type="number"
-                min="1900"
-                max={new Date().getFullYear() + 1}
-                value={formData.annee || ''}
-                onChange={(e) => handleInputChange('annee', parseInt(e.target.value) || new Date().getFullYear())}
-                placeholder="2023"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="couleur">Couleur *</Label>
-              <Input
-                id="couleur"
-                value={formData.couleur}
-                onChange={(e) => handleInputChange('couleur', e.target.value)}
-                placeholder="Blanc"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="typeCarburant">Type de carburant *</Label>
+              <Label htmlFor="type_carburant">Type de carburant *</Label>
               <Select
-                value={formData.typeCarburant}
-                onValueChange={(value: 'gasoil' | 'essence' | 'gasoil_50') => handleInputChange('typeCarburant', value)}
+                value={formData.type_carburant}
+                onValueChange={(value: 'gasoil' | 'essence' | 'gasoil_50') => 
+                  handleInputChange('type_carburant', value)
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -227,80 +159,70 @@ export const VehiculeFormDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="capaciteReservoir">Capacité réservoir (L) *</Label>
+              <Label htmlFor="marque">Marque</Label>
               <Input
-                id="capaciteReservoir"
+                id="marque"
+                value={formData.marque}
+                onChange={(e) => handleInputChange('marque', e.target.value)}
+                placeholder="Toyota, Renault, etc."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="modele">Modèle</Label>
+              <Input
+                id="modele"
+                value={formData.modele}
+                onChange={(e) => handleInputChange('modele', e.target.value)}
+                placeholder="Corolla, Clio, etc."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="annee">Année</Label>
+              <Input
+                id="annee"
+                type="number"
+                min="1900"
+                max={new Date().getFullYear() + 1}
+                value={formData.annee || ''}
+                onChange={(e) => handleInputChange('annee', parseInt(e.target.value) || undefined)}
+                placeholder="2020"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="couleur">Couleur</Label>
+              <Input
+                id="couleur"
+                value={formData.couleur}
+                onChange={(e) => handleInputChange('couleur', e.target.value)}
+                placeholder="Blanc, Noir, Rouge, etc."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="capacite_reservoir">Capacité du réservoir (L)</Label>
+              <Input
+                id="capacite_reservoir"
                 type="number"
                 min="1"
-                step="1"
-                value={formData.capaciteReservoir || ''}
-                onChange={(e) => handleInputChange('capaciteReservoir', parseInt(e.target.value) || 50)}
+                max="1000"
+                step="0.1"
+                value={formData.capacite_reservoir || ''}
+                onChange={(e) => handleInputChange('capacite_reservoir', parseFloat(e.target.value) || undefined)}
                 placeholder="50"
-                required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="kilometrage">Kilométrage actuel</Label>
+              <Label htmlFor="notes">Notes</Label>
               <Input
-                id="kilometrage"
-                type="number"
-                min="0"
-                step="1"
-                value={formData.kilometrage || ''}
-                onChange={(e) => handleInputChange('kilometrage', parseInt(e.target.value) || 0)}
-                placeholder="0"
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => handleInputChange('notes', e.target.value)}
+                placeholder="Informations complémentaires..."
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="dateAchat">Date d'achat</Label>
-              <Input
-                id="dateAchat"
-                type="date"
-                value={formData.dateAchat || ''}
-                onChange={(e) => handleInputChange('dateAchat', e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="prixAchat">Prix d'achat (TND) *</Label>
-              <Input
-                id="prixAchat"
-                type="number"
-                min="0"
-                step="100"
-                value={formData.prixAchat || ''}
-                onChange={(e) => handleInputChange('prixAchat', parseFloat(e.target.value) || 0)}
-                placeholder="25000"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="numeroSerie">N° de série</Label>
-              <Input
-                id="numeroSerie"
-                value={formData.numeroSerie || ''}
-                onChange={(e) => handleInputChange('numeroSerie', e.target.value)}
-                placeholder="VF1MA000123456789"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="statut">Statut</Label>
-              <Select
-                value={formData.statut}
-                onValueChange={(value: 'actif' | 'inactif') => handleInputChange('statut', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="actif">Actif</SelectItem>
-                  <SelectItem value="inactif">Inactif</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
 

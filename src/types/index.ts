@@ -43,7 +43,7 @@ export interface Vehicule {
   modele: string;
   annee?: number;
   couleur?: string;
-  typeCarburant?: 'gasoil' | 'essence' | 'hybride' | 'electrique';
+  typeCarburant?: 'gasoil' | 'essence' | 'gasoil_50';
   capaciteReservoir?: number; // en litres
   kilometrage?: number; // km actuel
   dateAchat?: string;

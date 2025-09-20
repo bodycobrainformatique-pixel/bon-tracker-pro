@@ -245,6 +245,101 @@ export const useSupabaseData = () => {
     } catch (error) {
       console.error('Erreur lors du rechargement des bons:', error);
     }
+  // Realtime subscriptions
+  useEffect(() => {
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bons' },
+        () => {
+          console.log('Bons table changed, reloading...');
+          loadBons();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'vehicules' },
+        () => {
+          console.log('Vehicules table changed, reloading...');
+          loadVehicules();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'chauffeurs' },
+        () => {
+          console.log('Chauffeurs table changed, reloading...');
+          loadChauffeurs();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'carburant_parameters' },
+        () => {
+          console.log('Carburant parameters changed, reloading...');
+          // Could trigger a refresh of fuel parameters if needed
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const loadBons = async () => {
+    try {
+      const { data: bonsData, error: bonsError } = await supabase
+        .from('bons')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (bonsError) {
+        console.error('Erreur lors du chargement des bons:', bonsError);
+      } else {
+        const mappedBons = (bonsData as DbBon[]).map(mapDbBonToBon);
+        setBons(mappedBons);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des bons:', error);
+    }
+  };
+
+  const loadVehicules = async () => {
+    try {
+      const { data: vehiculesData, error: vehiculesError } = await supabase
+        .from('vehicules')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (vehiculesError) {
+        console.error('Erreur lors du chargement des véhicules:', vehiculesError);
+      } else {
+        const mappedVehicules = (vehiculesData as DbVehicule[]).map(mapDbVehiculeToVehicule);
+        setVehicules(mappedVehicules);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des véhicules:', error);
+    }
+  };
+
+  const loadChauffeurs = async () => {
+    try {
+      const { data: chauffeursData, error: chauffeursError } = await supabase
+        .from('chauffeurs')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (chauffeursError) {
+        console.error('Erreur lors du chargement des chauffeurs:', chauffeursError);
+      } else {
+        const mappedChauffeurs = (chauffeursData as DbChauffeur[]).map(mapDbChauffeurToChauffeur);
+        setChauffeurs(mappedChauffeurs);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des chauffeurs:', error);
+    }
   };
 
   // Fonctions CRUD pour les bons
