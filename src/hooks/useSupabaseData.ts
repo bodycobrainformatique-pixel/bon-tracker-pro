@@ -222,6 +222,25 @@ export const useSupabaseData = () => {
     loadData();
   }, []);
 
+  // Function to reload bons data
+  const reloadBonsData = async () => {
+    try {
+      const { data: bonsData, error: bonsError } = await supabase
+        .from('bons')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (bonsError) {
+        console.error('Erreur lors du rechargement des bons:', bonsError);
+      } else {
+        const mappedBons = (bonsData as DbBon[]).map(mapDbBonToBon);
+        setBons(mappedBons);
+      }
+    } catch (error) {
+      console.error('Erreur lors du rechargement des bons:', error);
+    }
+  };
+
   // Fonctions CRUD pour les bons
   const createBon = async (bonData: Omit<Bon, 'id' | 'createdAt' | 'updatedAt'>) => {
     const newBon: Bon = {
@@ -240,7 +259,8 @@ export const useSupabaseData = () => {
           date: newBon.date,
           type: newBon.type,
           montant: newBon.montant,
-          distance: newBon.distance,
+          km_initial: newBon.kmInitial,
+          // km_final and distance will be managed by database trigger
           chauffeur_id: newBon.chauffeurId,
           vehicule_id: newBon.vehiculeId,
           status: newBon.status,
@@ -252,7 +272,8 @@ export const useSupabaseData = () => {
         throw error;
       }
 
-      setBons(prev => [newBon, ...prev]);
+      // Refresh all bons data since the trigger may have updated other bons
+      await reloadBonsData();
       
       // Détection d'anomalies
       const newAnomalies = detectAnomalies(newBon, bons, chauffeurs, vehicules);

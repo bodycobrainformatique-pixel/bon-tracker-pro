@@ -91,14 +91,6 @@ export const BonFormDialog = ({
     }
   }, [formData.vehiculeId, bon, bons]);
 
-  // Calcul automatique de la distance
-  useEffect(() => {
-    if (formData.kmInitial && formData.kmFinal) {
-      const distance = formData.kmFinal - formData.kmInitial;
-      setFormData(prev => ({ ...prev, distance }));
-    }
-  }, [formData.kmInitial, formData.kmFinal]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -108,7 +100,9 @@ export const BonFormDialog = ({
       return;
     }
 
-    onSubmit(formData);
+    // Remove km_final and distance from form data - managed by database trigger
+    const { kmFinal, distance, ...submitData } = formData;
+    onSubmit(submitData);
   };
 
   const handleInputChange = (field: keyof typeof formData, value: any) => {
@@ -254,14 +248,14 @@ export const BonFormDialog = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="kmFinal">Km final</Label>
+                  <Label htmlFor="kmFinal">Km final (automatique)</Label>
                   <Input
                     id="kmFinal"
                     type="number"
-                    min="0"
                     value={formData.kmFinal || ''}
-                    onChange={(e) => handleInputChange('kmFinal', parseInt(e.target.value) || undefined)}
-                    placeholder="45380"
+                    disabled
+                    placeholder="Renseigné automatiquement"
+                    className="bg-muted"
                   />
                 </div>
 
