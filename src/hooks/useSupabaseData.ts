@@ -727,9 +727,9 @@ export const useSupabaseData = () => {
             distance: bon.distance || null,
             chauffeur_id: bon.chauffeurId,
             vehicule_id: bon.vehiculeId,
-          notes: bon.notes || null,
-          created_at: bon.createdAt,
-          updated_at: bon.updatedAt
+            notes: bon.notes || null,
+            created_at: bon.createdAt,
+            updated_at: bon.updatedAt
           });
 
         if (error) {
@@ -779,6 +779,7 @@ export const useSupabaseData = () => {
       throw error;
     }
   };
+
   const syncWithLocalStorage = async () => {
     try {
       // Récupérer les données de localStorage
