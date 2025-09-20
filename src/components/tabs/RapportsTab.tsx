@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Bon, Vehicule, Chauffeur, Anomalie } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Calendar, Car, User, RefreshCw, AlertTriangle, TrendingUp, Fuel } from 'lucide-react';
+import { Download, Calendar, Car, User, RefreshCw, AlertTriangle, TrendingUp, Fuel, Clock } from 'lucide-react';
 
 interface VehiculeReportStats {
   totalKm: number;
@@ -17,8 +17,8 @@ interface VehiculeReportStats {
   avgConsumption: number;
   anomaliesCount: number;
   fuelTypes: { [key: string]: number };
-  monthlyData: Array<{
-    month: string;
+  periodData: Array<{
+    period: string;
     km: number;
     montant: number;
     bons: number;
@@ -32,8 +32,8 @@ interface ChauffeurReportStats {
   avgKmPerBon: number;
   anomaliesCount: number;
   vehiclesUsed: number;
-  monthlyData: Array<{
-    month: string;
+  periodData: Array<{
+    period: string;
     km: number;
     montant: number;
     bons: number;
@@ -53,6 +53,7 @@ export const RapportsTab = ({ vehicules = [], chauffeurs = [], bons = [], anomal
   const [selectedChauffeurId, setSelectedChauffeurId] = useState<string>('');
   const [dateFrom, setDateFrom] = useState<string>(''); // Empty for "all time"
   const [dateTo, setDateTo] = useState<string>(''); // Empty for "all time"
+  const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
   const [vehiculeStats, setVehiculeStats] = useState<VehiculeReportStats | null>(null);
   const [chauffeurStats, setChauffeurStats] = useState<ChauffeurReportStats | null>(null);
   const { toast } = useToast();
@@ -81,6 +82,46 @@ export const RapportsTab = ({ vehicules = [], chauffeurs = [], bons = [], anomal
     return filtered;
   };
 
+  // Helper function to get period key from date
+  const getPeriodKey = (date: string, periodType: 'daily' | 'weekly' | 'monthly'): string => {
+    const dateObj = new Date(date);
+    
+    switch (periodType) {
+      case 'daily':
+        return date; // YYYY-MM-DD
+      case 'weekly':
+        // Get Monday of the week
+        const monday = new Date(dateObj);
+        monday.setDate(dateObj.getDate() - (dateObj.getDay() + 6) % 7);
+        return monday.toISOString().split('T')[0];
+      case 'monthly':
+        return date.substring(0, 7); // YYYY-MM
+      default:
+        return date.substring(0, 7);
+    }
+  };
+
+  // Helper function to format period display
+  const formatPeriodDisplay = (periodKey: string, periodType: 'daily' | 'weekly' | 'monthly'): string => {
+    switch (periodType) {
+      case 'daily':
+        return new Date(periodKey).toLocaleDateString('fr-FR');
+      case 'weekly':
+        const weekStart = new Date(periodKey);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        return `${weekStart.toLocaleDateString('fr-FR')} - ${weekEnd.toLocaleDateString('fr-FR')}`;
+      case 'monthly':
+        const [year, month] = periodKey.split('-');
+        return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('fr-FR', { 
+          year: 'numeric', 
+          month: 'long' 
+        });
+      default:
+        return periodKey;
+    }
+  };
+
   // Calculate vehicle statistics
   const calculateVehiculeStats = (filteredBons: Bon[]): VehiculeReportStats => {
     if (!filteredBons || filteredBons.length === 0) {
@@ -91,7 +132,7 @@ export const RapportsTab = ({ vehicules = [], chauffeurs = [], bons = [], anomal
         avgConsumption: 0,
         anomaliesCount: 0,
         fuelTypes: {},
-        monthlyData: []
+        periodData: []
       };
     }
 
@@ -114,24 +155,24 @@ export const RapportsTab = ({ vehicules = [], chauffeurs = [], bons = [], anomal
       return acc;
     }, {} as { [key: string]: number });
 
-    // Group by month for trends
-    const monthlyData = filteredBons.reduce((acc, bon) => {
-      const month = bon.date.substring(0, 7); // YYYY-MM
-      const existing = acc.find(item => item.month === month);
+    // Group by period for trends
+    const periodData = filteredBons.reduce((acc, bon) => {
+      const periodKey = getPeriodKey(bon.date, period);
+      const existing = acc.find(item => item.period === periodKey);
       if (existing) {
         existing.km += bon.distance || 0;
         existing.montant += bon.montant;
         existing.bons += 1;
       } else {
         acc.push({
-          month,
+          period: periodKey,
           km: bon.distance || 0,
           montant: bon.montant,
           bons: 1
         });
       }
       return acc;
-    }, [] as Array<{ month: string; km: number; montant: number; bons: number }>);
+    }, [] as Array<{ period: string; km: number; montant: number; bons: number }>);
 
     return {
       totalKm,
@@ -140,7 +181,7 @@ export const RapportsTab = ({ vehicules = [], chauffeurs = [], bons = [], anomal
       avgConsumption,
       anomaliesCount: vehicleAnomalies.length,
       fuelTypes,
-      monthlyData: monthlyData.sort((a, b) => a.month.localeCompare(b.month))
+      periodData: periodData.sort((a, b) => a.period.localeCompare(b.period))
     };
   };
 
@@ -154,7 +195,7 @@ export const RapportsTab = ({ vehicules = [], chauffeurs = [], bons = [], anomal
         avgKmPerBon: 0,
         anomaliesCount: 0,
         vehiclesUsed: 0,
-        monthlyData: []
+        periodData: []
       };
     }
 
@@ -173,24 +214,24 @@ export const RapportsTab = ({ vehicules = [], chauffeurs = [], bons = [], anomal
       return bonIds.includes(anomalie.bonId) && anomalie.statut === 'a_verifier';
     });
 
-    // Group by month for trends
-    const monthlyData = filteredBons.reduce((acc, bon) => {
-      const month = bon.date.substring(0, 7); // YYYY-MM
-      const existing = acc.find(item => item.month === month);
+    // Group by period for trends
+    const periodData = filteredBons.reduce((acc, bon) => {
+      const periodKey = getPeriodKey(bon.date, period);
+      const existing = acc.find(item => item.period === periodKey);
       if (existing) {
         existing.km += bon.distance || 0;
         existing.montant += bon.montant;
         existing.bons += 1;
       } else {
         acc.push({
-          month,
+          period: periodKey,
           km: bon.distance || 0,
           montant: bon.montant,
           bons: 1
         });
       }
       return acc;
-    }, [] as Array<{ month: string; km: number; montant: number; bons: number }>);
+    }, [] as Array<{ period: string; km: number; montant: number; bons: number }>);
 
     return {
       totalKm,
@@ -199,7 +240,7 @@ export const RapportsTab = ({ vehicules = [], chauffeurs = [], bons = [], anomal
       avgKmPerBon,
       anomaliesCount: chauffeurAnomalies.length,
       vehiclesUsed,
-      monthlyData: monthlyData.sort((a, b) => a.month.localeCompare(b.month))
+      periodData: periodData.sort((a, b) => a.period.localeCompare(b.period))
     };
   };
 
@@ -212,7 +253,7 @@ export const RapportsTab = ({ vehicules = [], chauffeurs = [], bons = [], anomal
     } else if (reportType === 'chauffeur' && selectedChauffeurId) {
       setChauffeurStats(calculateChauffeurStats(filteredBons));
     }
-  }, [reportType, selectedVehiculeId, selectedChauffeurId, dateFrom, dateTo, bons, anomalies]);
+  }, [reportType, selectedVehiculeId, selectedChauffeurId, dateFrom, dateTo, period, bons, anomalies]);
 
   // Export functionality
   const exportCSV = () => {
@@ -281,7 +322,7 @@ export const RapportsTab = ({ vehicules = [], chauffeurs = [], bons = [], anomal
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               {reportType === 'vehicule' ? (
                 <div className="space-y-2">
                   <Label htmlFor="vehicule">Véhicule</Label>
@@ -336,6 +377,20 @@ export const RapportsTab = ({ vehicules = [], chauffeurs = [], bons = [], anomal
                   onChange={(e) => setDateTo(e.target.value)}
                   placeholder="Jusqu'à aujourd'hui"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="period">Période d'affichage</Label>
+                <Select value={period} onValueChange={(value) => setPeriod(value as 'daily' | 'weekly' | 'monthly')}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Quotidien</SelectItem>
+                    <SelectItem value="weekly">Hebdomadaire</SelectItem>
+                    <SelectItem value="monthly">Mensuel</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
@@ -412,21 +467,29 @@ export const RapportsTab = ({ vehicules = [], chauffeurs = [], bons = [], anomal
               </div>
 
               {/* Vehicle Charts */}
-              {vehiculeStats.monthlyData.length > 0 && (
+              {vehiculeStats.periodData.length > 0 && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Évolution mensuelle - Distance</CardTitle>
+                      <CardTitle>Évolution {period === 'daily' ? 'quotidienne' : period === 'weekly' ? 'hebdomadaire' : 'mensuelle'} - Distance</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={vehiculeStats.monthlyData}>
+                        <LineChart data={vehiculeStats.periodData.map(item => ({
+                          ...item,
+                          displayPeriod: formatPeriodDisplay(item.period, period)
+                        }))}>
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="month" />
+                          <XAxis 
+                            dataKey="displayPeriod" 
+                            angle={period === 'daily' ? -45 : 0}
+                            textAnchor={period === 'daily' ? 'end' : 'middle'}
+                            height={period === 'daily' ? 80 : 50}
+                          />
                           <YAxis />
                           <Tooltip 
                             formatter={(value: number) => [`${value.toFixed(1)} km`, 'Distance']}
-                            labelFormatter={(label) => `Mois: ${label}`}
+                            labelFormatter={(label) => `Période: ${label}`}
                           />
                           <Line type="monotone" dataKey="km" stroke="hsl(var(--primary))" strokeWidth={2} />
                         </LineChart>
@@ -436,17 +499,25 @@ export const RapportsTab = ({ vehicules = [], chauffeurs = [], bons = [], anomal
 
                   <Card>
                     <CardHeader>
-                      <CardTitle>Évolution mensuelle - Coût</CardTitle>
+                      <CardTitle>Évolution {period === 'daily' ? 'quotidienne' : period === 'weekly' ? 'hebdomadaire' : 'mensuelle'} - Coût</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={vehiculeStats.monthlyData}>
+                        <BarChart data={vehiculeStats.periodData.map(item => ({
+                          ...item,
+                          displayPeriod: formatPeriodDisplay(item.period, period)
+                        }))}>
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="month" />
+                          <XAxis 
+                            dataKey="displayPeriod" 
+                            angle={period === 'daily' ? -45 : 0}
+                            textAnchor={period === 'daily' ? 'end' : 'middle'}
+                            height={period === 'daily' ? 80 : 50}
+                          />
                           <YAxis />
                           <Tooltip 
                             formatter={(value: number) => [`${value.toFixed(2)} TND`, 'Coût']}
-                            labelFormatter={(label) => `Mois: ${label}`}
+                            labelFormatter={(label) => `Période: ${label}`}
                           />
                           <Bar dataKey="montant" fill="hsl(var(--secondary))" />
                         </BarChart>
@@ -486,17 +557,25 @@ export const RapportsTab = ({ vehicules = [], chauffeurs = [], bons = [], anomal
 
                   <Card>
                     <CardHeader>
-                      <CardTitle>Nombre de bons par mois</CardTitle>
+                      <CardTitle>Nombre de bons par {period === 'daily' ? 'jour' : period === 'weekly' ? 'semaine' : 'mois'}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={vehiculeStats.monthlyData}>
+                        <BarChart data={vehiculeStats.periodData.map(item => ({
+                          ...item,
+                          displayPeriod: formatPeriodDisplay(item.period, period)
+                        }))}>
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="month" />
+                          <XAxis 
+                            dataKey="displayPeriod" 
+                            angle={period === 'daily' ? -45 : 0}
+                            textAnchor={period === 'daily' ? 'end' : 'middle'}
+                            height={period === 'daily' ? 80 : 50}
+                          />
                           <YAxis />
                           <Tooltip 
                             formatter={(value: number) => [`${value}`, 'Bons']}
-                            labelFormatter={(label) => `Mois: ${label}`}
+                            labelFormatter={(label) => `Période: ${label}`}
                           />
                           <Bar dataKey="bons" fill="hsl(var(--accent))" />
                         </BarChart>
@@ -586,21 +665,29 @@ export const RapportsTab = ({ vehicules = [], chauffeurs = [], bons = [], anomal
               </div>
 
               {/* Chauffeur Charts */}
-              {chauffeurStats.monthlyData.length > 0 && (
+              {chauffeurStats.periodData.length > 0 && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Évolution mensuelle - Distance</CardTitle>
+                      <CardTitle>Évolution {period === 'daily' ? 'quotidienne' : period === 'weekly' ? 'hebdomadaire' : 'mensuelle'} - Distance</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={chauffeurStats.monthlyData}>
+                        <LineChart data={chauffeurStats.periodData.map(item => ({
+                          ...item,
+                          displayPeriod: formatPeriodDisplay(item.period, period)
+                        }))}>
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="month" />
+                          <XAxis 
+                            dataKey="displayPeriod" 
+                            angle={period === 'daily' ? -45 : 0}
+                            textAnchor={period === 'daily' ? 'end' : 'middle'}
+                            height={period === 'daily' ? 80 : 50}
+                          />
                           <YAxis />
                           <Tooltip 
                             formatter={(value: number) => [`${value.toFixed(1)} km`, 'Distance']}
-                            labelFormatter={(label) => `Mois: ${label}`}
+                            labelFormatter={(label) => `Période: ${label}`}
                           />
                           <Line type="monotone" dataKey="km" stroke="hsl(var(--primary))" strokeWidth={2} />
                         </LineChart>
@@ -610,17 +697,25 @@ export const RapportsTab = ({ vehicules = [], chauffeurs = [], bons = [], anomal
 
                   <Card>
                     <CardHeader>
-                      <CardTitle>Évolution mensuelle - Coût</CardTitle>
+                      <CardTitle>Évolution {period === 'daily' ? 'quotidienne' : period === 'weekly' ? 'hebdomadaire' : 'mensuelle'} - Coût</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={chauffeurStats.monthlyData}>
+                        <BarChart data={chauffeurStats.periodData.map(item => ({
+                          ...item,
+                          displayPeriod: formatPeriodDisplay(item.period, period)
+                        }))}>
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="month" />
+                          <XAxis 
+                            dataKey="displayPeriod" 
+                            angle={period === 'daily' ? -45 : 0}
+                            textAnchor={period === 'daily' ? 'end' : 'middle'}
+                            height={period === 'daily' ? 80 : 50}
+                          />
                           <YAxis />
                           <Tooltip 
                             formatter={(value: number) => [`${value.toFixed(2)} TND`, 'Coût']}
-                            labelFormatter={(label) => `Mois: ${label}`}
+                            labelFormatter={(label) => `Période: ${label}`}
                           />
                           <Bar dataKey="montant" fill="hsl(var(--secondary))" />
                         </BarChart>
@@ -630,17 +725,25 @@ export const RapportsTab = ({ vehicules = [], chauffeurs = [], bons = [], anomal
 
                   <Card>
                     <CardHeader>
-                      <CardTitle>Nombre de bons par mois</CardTitle>
+                      <CardTitle>Nombre de bons par {period === 'daily' ? 'jour' : period === 'weekly' ? 'semaine' : 'mois'}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={chauffeurStats.monthlyData}>
+                        <BarChart data={chauffeurStats.periodData.map(item => ({
+                          ...item,
+                          displayPeriod: formatPeriodDisplay(item.period, period)
+                        }))}>
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="month" />
+                          <XAxis 
+                            dataKey="displayPeriod" 
+                            angle={period === 'daily' ? -45 : 0}
+                            textAnchor={period === 'daily' ? 'end' : 'middle'}
+                            height={period === 'daily' ? 80 : 50}
+                          />
                           <YAxis />
                           <Tooltip 
                             formatter={(value: number) => [`${value}`, 'Bons']}
-                            labelFormatter={(label) => `Mois: ${label}`}
+                            labelFormatter={(label) => `Période: ${label}`}
                           />
                           <Bar dataKey="bons" fill="hsl(var(--accent))" />
                         </BarChart>
@@ -654,16 +757,22 @@ export const RapportsTab = ({ vehicules = [], chauffeurs = [], bons = [], anomal
                     </CardHeader>
                     <CardContent>
                       <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={(chauffeurStats?.monthlyData || []).map(item => ({
+                        <LineChart data={(chauffeurStats?.periodData || []).map(item => ({
                           ...item,
-                          kmPerBon: item.bons > 0 ? item.km / item.bons : 0
+                          kmPerBon: item.bons > 0 ? item.km / item.bons : 0,
+                          displayPeriod: formatPeriodDisplay(item.period, period)
                         }))}>
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="month" />
+                          <XAxis 
+                            dataKey="displayPeriod" 
+                            angle={period === 'daily' ? -45 : 0}
+                            textAnchor={period === 'daily' ? 'end' : 'middle'}
+                            height={period === 'daily' ? 80 : 50}
+                          />
                           <YAxis />
                           <Tooltip 
                             formatter={(value: number) => [`${value.toFixed(1)} km/bon`, 'Performance']}
-                            labelFormatter={(label) => `Mois: ${label}`}
+                            labelFormatter={(label) => `Période: ${label}`}
                           />
                           <Line type="monotone" dataKey="kmPerBon" stroke="hsl(var(--destructive))" strokeWidth={2} />
                         </LineChart>
