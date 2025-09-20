@@ -26,8 +26,8 @@ export const StatsBar = ({ statistics }: StatsBarProps) => {
           <Banknote className="h-3 w-3 text-cash-foreground" />
         </div>
         <div className="text-xs">
-          <div className="text-muted-foreground">Espèces</div>
-          <div className="font-semibold">{statistics.montantEspeces.toFixed(2)} TND</div>
+          <div className="text-muted-foreground">Essence</div>
+          <div className="font-semibold">{statistics.montantEssence.toFixed(2)} TND</div>
         </div>
       </Card>
 

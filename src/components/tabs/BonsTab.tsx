@@ -70,32 +70,15 @@ export const BonsTab = ({
     }
   };
 
-  const getStatusBadge = (status: Bon['status']) => {
-    const styles = {
-      draft: 'bg-warning text-warning-foreground',
-      completed: 'bg-success text-success-foreground',
-      validated: 'bg-info text-info-foreground'
+  const getTypeBadge = (type: Bon['type']) => {
+    const badgeConfig = {
+      'gasoil': { className: 'bg-fuel text-fuel-foreground', label: 'Gasoil' },
+      'essence': { className: 'bg-primary text-primary-foreground', label: 'Essence' },
+      'gasoil_50': { className: 'bg-secondary text-secondary-foreground', label: 'Gasoil 50' }
     };
     
-    const labels = {
-      draft: 'Brouillon',
-      completed: 'Terminé',
-      validated: 'Validé'
-    };
-
-    return (
-      <Badge className={styles[status]}>
-        {labels[status]}
-      </Badge>
-    );
-  };
-
-  const getTypeBadge = (type: Bon['type']) => {
-    return type === 'gasoil' ? (
-      <Badge className="bg-fuel text-fuel-foreground">Gasoil</Badge>
-    ) : (
-      <Badge className="bg-cash text-cash-foreground">Espèces</Badge>
-    );
+    const config = badgeConfig[type] || badgeConfig['gasoil'];
+    return <Badge className={config.className}>{config.label}</Badge>;
   };
 
   return (
@@ -247,7 +230,6 @@ export const BonsTab = ({
                   
                   <div className="flex space-x-2">
                     {getTypeBadge(bon.type)}
-                    {getStatusBadge(bon.status)}
                   </div>
 
                   <div className="text-center">

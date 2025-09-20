@@ -157,7 +157,6 @@ export const useTracabilityData = () => {
       if (filters.type && bon.type !== filters.type) return false;
       if (filters.chauffeurId && bon.chauffeurId !== filters.chauffeurId) return false;
       if (filters.vehiculeId && bon.vehiculeId !== filters.vehiculeId) return false;
-      if (filters.status && bon.status !== filters.status) return false;
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();
         const chauffeur = chauffeurs.find(c => c.id === bon.chauffeurId);
@@ -181,14 +180,16 @@ export const useTracabilityData = () => {
       totalDistance: stats.totalDistance + (bon.distance || 0),
       totalBons: stats.totalBons + 1,
       montantGasoil: stats.montantGasoil + (bon.type === 'gasoil' ? bon.montant : 0),
-      montantEspeces: stats.montantEspeces + (bon.type === 'especes' ? bon.montant : 0),
+      montantEssence: stats.montantEssence + (bon.type === 'essence' ? bon.montant : 0),
+      montantGasoil50: stats.montantGasoil50 + (bon.type === 'gasoil_50' ? bon.montant : 0),
       anomaliesCount: stats.anomaliesCount
     }), {
       totalMontant: 0,
       totalDistance: 0,
       totalBons: 0,
       montantGasoil: 0,
-      montantEspeces: 0,
+      montantEssence: 0,
+      montantGasoil50: 0,
       anomaliesCount: anomalies.filter(a => a.statut === 'a_verifier').length
     });
   };

@@ -1,8 +1,6 @@
 // Types pour l'application de traçabilité des bons
 
-export type BonType = 'gasoil' | 'especes';
-
-export type BonStatus = 'draft' | 'completed' | 'validated';
+export type BonType = 'gasoil' | 'essence' | 'gasoil_50';
 
 export interface Bon {
   id: string;
@@ -15,7 +13,6 @@ export interface Bon {
   kmInitial?: number;
   kmFinal?: number;
   distance?: number;
-  status: BonStatus;
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -91,7 +88,6 @@ export interface BonFilters {
   type?: BonType;
   chauffeurId?: string;
   vehiculeId?: string;
-  status?: BonStatus;
   search?: string;
 }
 
@@ -100,6 +96,14 @@ export interface Statistics {
   totalDistance: number;
   totalBons: number;
   montantGasoil: number;
-  montantEspeces: number;
+  montantEssence: number;
+  montantGasoil50: number;
   anomaliesCount: number;
+}
+
+export interface CarburantParameter {
+  type: BonType;
+  prix: number;
+  createdAt: string;
+  updatedAt: string;
 }

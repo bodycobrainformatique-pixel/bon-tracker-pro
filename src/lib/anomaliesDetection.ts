@@ -85,7 +85,7 @@ export const detectAnomalies = (
   const creationDate = new Date(bon.createdAt);
   const hoursElapsed = (now.getTime() - creationDate.getTime()) / (1000 * 60 * 60);
   
-  if (hoursElapsed > 24 && (bon.kmFinal === undefined || bon.status === 'draft')) {
+  if (hoursElapsed > 24 && (bon.kmFinal === undefined)) {
     anomalies.push(createAnomalie(
       bon.id,
       'bon_incomplet',

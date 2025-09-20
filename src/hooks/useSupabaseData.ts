@@ -115,14 +115,13 @@ const mapDbBonToBon = (dbBon: DbBon): Bon => ({
   id: dbBon.id,
   numero: dbBon.numero,
   date: dbBon.date,
-  type: dbBon.type as 'gasoil' | 'especes',
+  type: dbBon.type as 'gasoil' | 'essence' | 'gasoil_50',
   montant: Number(dbBon.montant),
   kmInitial: dbBon.km_initial ? Number(dbBon.km_initial) : undefined,
   kmFinal: dbBon.km_final ? Number(dbBon.km_final) : undefined,
   distance: dbBon.distance ? Number(dbBon.distance) : undefined,
   chauffeurId: dbBon.chauffeur_id,
   vehiculeId: dbBon.vehicule_id,
-  status: (dbBon.status === 'en_cours' ? 'draft' : dbBon.status === 'valide' ? 'completed' : 'validated') as 'draft' | 'completed' | 'validated',
   notes: dbBon.notes || undefined,
   createdAt: dbBon.created_at,
   updatedAt: dbBon.updated_at
@@ -267,7 +266,6 @@ export const useSupabaseData = () => {
           // km_final and distance will be managed by database trigger
           chauffeur_id: newBon.chauffeurId,
           vehicule_id: newBon.vehiculeId,
-          status: newBon.status,
           notes: newBon.notes
         }]);
 
@@ -304,7 +302,6 @@ export const useSupabaseData = () => {
           distance: updates.distance,
           chauffeur_id: updates.chauffeurId,
           vehicule_id: updates.vehiculeId,
-          status: updates.status,
           notes: updates.notes,
           updated_at: new Date().toISOString()
         })
@@ -643,10 +640,9 @@ export const useSupabaseData = () => {
             distance: bon.distance || null,
             chauffeur_id: bon.chauffeurId,
             vehicule_id: bon.vehiculeId,
-            status: bon.status === 'draft' ? 'en_cours' : bon.status === 'completed' ? 'valide' : 'annule',
-            notes: bon.notes || null,
-            created_at: bon.createdAt,
-            updated_at: bon.updatedAt
+          notes: bon.notes || null,
+          created_at: bon.createdAt,
+          updated_at: bon.updatedAt
           });
 
         if (error) {
@@ -768,10 +764,9 @@ export const useSupabaseData = () => {
             distance: bon.distance,
             chauffeur_id: bon.chauffeurId,
             vehicule_id: bon.vehiculeId,
-            status: bon.status,
-            notes: bon.notes,
-            created_at: bon.createdAt,
-            updated_at: bon.updatedAt
+          notes: bon.notes,
+          created_at: bon.createdAt,
+          updated_at: bon.updatedAt
           });
 
         if (error) {
@@ -852,7 +847,6 @@ export const useSupabaseData = () => {
       if (filters.type && bon.type !== filters.type) return false;
       if (filters.chauffeurId && bon.chauffeurId !== filters.chauffeurId) return false;
       if (filters.vehiculeId && bon.vehiculeId !== filters.vehiculeId) return false;
-      if (filters.status && bon.status !== filters.status) return false;
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();
         const chauffeur = chauffeurs.find(c => c.id === bon.chauffeurId);
@@ -876,14 +870,16 @@ export const useSupabaseData = () => {
       totalDistance: stats.totalDistance + (bon.distance || 0),
       totalBons: stats.totalBons + 1,
       montantGasoil: stats.montantGasoil + (bon.type === 'gasoil' ? bon.montant : 0),
-      montantEspeces: stats.montantEspeces + (bon.type === 'especes' ? bon.montant : 0),
+      montantEssence: stats.montantEssence + (bon.type === 'essence' ? bon.montant : 0),
+      montantGasoil50: stats.montantGasoil50 + (bon.type === 'gasoil_50' ? bon.montant : 0),
       anomaliesCount: stats.anomaliesCount
     }), {
       totalMontant: 0,
       totalDistance: 0,
       totalBons: 0,
       montantGasoil: 0,
-      montantEspeces: 0,
+      montantEssence: 0,
+      montantGasoil50: 0,
       anomaliesCount: anomalies.filter(a => a.statut === 'a_verifier').length
     });
   };

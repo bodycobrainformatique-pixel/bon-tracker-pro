@@ -130,7 +130,6 @@ export const seedBons: Bon[] = [
     kmInitial: 45230,
     kmFinal: 45380,
     distance: 150,
-    status: 'completed',
     notes: 'Livraison Tunis-Sfax',
     createdAt: new Date('2024-09-15T08:30:00').toISOString(),
     updatedAt: new Date('2024-09-15T18:30:00').toISOString()
@@ -139,14 +138,13 @@ export const seedBons: Bon[] = [
     id: 'bon_2',
     numero: 'BON002',
     date: new Date('2024-09-16').toISOString().split('T')[0],
-    type: 'especes',
+    type: 'essence',
     montant: 85.00,
     chauffeurId: 'chauffeur_2',
     vehiculeId: 'vehicule_2',
     kmInitial: 78450,
     kmFinal: 78520,
     distance: 70,
-    status: 'completed',
     notes: 'Frais de péage autoroute',
     createdAt: new Date('2024-09-16T09:15:00').toISOString(),
     updatedAt: new Date('2024-09-16T17:45:00').toISOString()
@@ -160,7 +158,6 @@ export const seedBons: Bon[] = [
     chauffeurId: 'chauffeur_1',
     vehiculeId: 'vehicule_3',
     kmInitial: 12850,
-    status: 'draft',
     notes: 'En cours - Tunis-Sousse',
     createdAt: new Date('2024-09-17T07:00:00').toISOString(),
     updatedAt: new Date('2024-09-17T07:00:00').toISOString()
@@ -176,7 +173,6 @@ export const seedBons: Bon[] = [
     kmInitial: 45380,
     kmFinal: 45320, // Anomalie : recul kilométrique
     distance: -60,
-    status: 'completed',
     createdAt: new Date('2024-09-18T10:30:00').toISOString(),
     updatedAt: new Date('2024-09-18T16:30:00').toISOString()
   },
@@ -184,14 +180,13 @@ export const seedBons: Bon[] = [
     id: 'bon_5',
     numero: 'BON005',
     date: new Date('2024-09-19').toISOString().split('T')[0],
-    type: 'especes',
+    type: 'gasoil_50',
     montant: 150.00,
     chauffeurId: 'chauffeur_1',
     vehiculeId: 'vehicule_2',
     kmInitial: 78520,
     kmFinal: 78720,
     distance: 200,
-    status: 'validated',
     notes: 'Mission Monastir-Kairouan',
     createdAt: new Date('2024-09-19T08:00:00').toISOString(),
     updatedAt: new Date('2024-09-19T19:00:00').toISOString()

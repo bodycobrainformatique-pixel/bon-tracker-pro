@@ -138,6 +138,27 @@ export type Database = {
           },
         ]
       }
+      carburant_parameters: {
+        Row: {
+          created_at: string
+          prix: number
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          prix?: number
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          prix?: number
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chauffeurs: {
         Row: {
           adresse: string

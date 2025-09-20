@@ -1,7 +1,7 @@
 // Dialog de création/édition d'un bon
 
 import { useState, useEffect } from 'react';
-import { Bon, Chauffeur, Vehicule, BonType, BonStatus } from '@/types';
+import { Bon, Chauffeur, Vehicule, BonType } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,7 +39,6 @@ export const BonFormDialog = ({
     kmInitial: undefined,
     kmFinal: undefined,
     distance: undefined,
-    status: 'draft',
     notes: ''
   });
 
@@ -55,7 +54,6 @@ export const BonFormDialog = ({
         kmInitial: bon.kmInitial,
         kmFinal: bon.kmFinal,
         distance: bon.distance,
-        status: bon.status,
         notes: bon.notes || ''
       });
     } else {
@@ -70,7 +68,6 @@ export const BonFormDialog = ({
         kmInitial: undefined,
         kmFinal: undefined,
         distance: undefined,
-        status: 'draft',
         notes: ''
       });
     }
@@ -156,7 +153,8 @@ export const BonFormDialog = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="gasoil">Gasoil</SelectItem>
-                  <SelectItem value="especes">Espèces</SelectItem>
+                  <SelectItem value="essence">Essence</SelectItem>
+                  <SelectItem value="gasoil_50">Gasoil 50</SelectItem>
                 </SelectContent>
               </Select>
             </div>
