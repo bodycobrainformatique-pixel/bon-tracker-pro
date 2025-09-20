@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 
 interface BonFormDialogProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export const BonFormDialog = ({
   vehicules,
   bons
 }: BonFormDialogProps) => {
+  const { toast } = useToast();
   const [formData, setFormData] = useState<Omit<Bon, 'id' | 'createdAt' | 'updatedAt'>>({
     numero: '',
     date: new Date().toISOString().split('T')[0],
@@ -93,7 +95,11 @@ export const BonFormDialog = ({
     
     // Validation basique
     if (!formData.numero || !formData.chauffeurId || !formData.vehiculeId || formData.montant <= 0) {
-      alert('Veuillez remplir tous les champs obligatoires (numéro, chauffeur, véhicule, montant)');
+      toast({
+        variant: "destructive",
+        title: "Erreur de validation",
+        description: "Veuillez remplir tous les champs obligatoires (numéro, chauffeur, véhicule, montant)"
+      });
       return;
     }
 

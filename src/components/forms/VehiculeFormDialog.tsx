@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 
 interface VehiculeFormDialogProps {
   isOpen: boolean;
@@ -22,6 +22,7 @@ export const VehiculeFormDialog = ({
   onSubmit,
   vehicule
 }: VehiculeFormDialogProps) => {
+  const { toast } = useToast();
   const [formData, setFormData] = useState<Omit<Vehicule, 'id' | 'createdAt' | 'updatedAt'>>({
     immatriculation: '',
     marque: '',
@@ -34,9 +35,7 @@ export const VehiculeFormDialog = ({
     dateAchat: '',
     prixAchat: 0,
     numeroSerie: '',
-    statut: 'actif',
-    consommationReference: undefined,
-    coutKmReference: undefined
+    statut: 'actif'
   });
 
   useEffect(() => {
@@ -53,9 +52,7 @@ export const VehiculeFormDialog = ({
         dateAchat: vehicule.dateAchat || '',
         prixAchat: vehicule.prixAchat || 0,
         numeroSerie: vehicule.numeroSerie || '',
-        statut: vehicule.statut,
-        consommationReference: vehicule.consommationReference,
-        coutKmReference: vehicule.coutKmReference
+        statut: vehicule.statut
       });
     } else {
       // Reset pour nouveau véhicule
@@ -71,9 +68,7 @@ export const VehiculeFormDialog = ({
         dateAchat: '',
         prixAchat: 0,
         numeroSerie: '',
-        statut: 'actif',
-        consommationReference: undefined,
-        coutKmReference: undefined
+        statut: 'actif'
       });
     }
   }, [vehicule, isOpen]);
@@ -83,30 +78,50 @@ export const VehiculeFormDialog = ({
     
     // Validation basique
     if (!formData.immatriculation || !formData.marque || !formData.modele || !formData.couleur) {
-      toast.error('Veuillez remplir tous les champs obligatoires');
+      toast({
+        variant: "destructive",
+        title: "Erreur de validation",
+        description: "Veuillez remplir tous les champs obligatoires"
+      });
       return;
     }
 
     // Validation de l'immatriculation tunisienne (format: 123 TUN 1234)
     const immatRegex = /^\d{1,3}[-\s]?TUN[-\s]?\d{1,4}$/i;
     if (!immatRegex.test(formData.immatriculation.replace(/\s/g, ''))) {
-      toast.error('Veuillez saisir une immatriculation tunisienne valide (ex: 123 TUN 1234)');
+      toast({
+        variant: "destructive",
+        title: "Erreur de validation",
+        description: "Veuillez saisir une immatriculation tunisienne valide (ex: 123 TUN 1234)"
+      });
       return;
     }
 
     // Validation des champs numériques
     if (!formData.annee || formData.annee < 1900 || formData.annee > new Date().getFullYear() + 1) {
-      toast.error('Veuillez saisir une année valide');
+      toast({
+        variant: "destructive",
+        title: "Erreur de validation",
+        description: "Veuillez saisir une année valide"
+      });
       return;
     }
 
     if (!formData.capaciteReservoir || formData.capaciteReservoir <= 0) {
-      toast.error('La capacité du réservoir doit être supérieure à 0');
+      toast({
+        variant: "destructive",
+        title: "Erreur de validation",
+        description: "La capacité du réservoir doit être supérieure à 0"
+      });
       return;
     }
 
     if (!formData.prixAchat || formData.prixAchat < 0) {
-      toast.error('Le prix d\'achat doit être supérieur ou égal à 0');
+      toast({
+        variant: "destructive",
+        title: "Erreur de validation",
+        description: "Le prix d'achat doit être supérieur ou égal à 0"
+      });
       return;
     }
 
@@ -198,7 +213,7 @@ export const VehiculeFormDialog = ({
               <Label htmlFor="typeCarburant">Type de carburant *</Label>
               <Select
                 value={formData.typeCarburant}
-                onValueChange={(value: 'gasoil' | 'essence' | 'hybride' | 'electrique') => handleInputChange('typeCarburant', value)}
+                onValueChange={(value: 'gasoil' | 'essence' | 'gasoil_50') => handleInputChange('typeCarburant', value)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -206,8 +221,7 @@ export const VehiculeFormDialog = ({
                 <SelectContent>
                   <SelectItem value="gasoil">Gasoil</SelectItem>
                   <SelectItem value="essence">Essence</SelectItem>
-                  <SelectItem value="hybride">Hybride</SelectItem>
-                  <SelectItem value="electrique">Électrique</SelectItem>
+                  <SelectItem value="gasoil_50">Gasoil 50</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -290,33 +304,6 @@ export const VehiculeFormDialog = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="consommation">Consommation de référence (L/100km)</Label>
-              <Input
-                id="consommation"
-                type="number"
-                step="0.1"
-                min="0"
-                value={formData.consommationReference || ''}
-                onChange={(e) => handleInputChange('consommationReference', parseFloat(e.target.value) || undefined)}
-                placeholder="8.5"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cout">Coût de référence (TND/km)</Label>
-              <Input
-                id="cout"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.coutKmReference || ''}
-                onChange={(e) => handleInputChange('coutKmReference', parseFloat(e.target.value) || undefined)}
-                placeholder="0.85"
-              />
-            </div>
-          </div>
 
           <div className="flex justify-end space-x-3 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
