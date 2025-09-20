@@ -85,6 +85,8 @@ export type Database = {
           date: string
           distance: number | null
           id: string
+          km_final: number | null
+          km_initial: number | null
           montant: number
           notes: string | null
           numero: string
@@ -99,6 +101,8 @@ export type Database = {
           date: string
           distance?: number | null
           id?: string
+          km_final?: number | null
+          km_initial?: number | null
           montant: number
           notes?: string | null
           numero: string
@@ -113,6 +117,8 @@ export type Database = {
           date?: string
           distance?: number | null
           id?: string
+          km_final?: number | null
+          km_initial?: number | null
           montant?: number
           notes?: string | null
           numero?: string
