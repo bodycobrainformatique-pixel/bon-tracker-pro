@@ -246,6 +246,8 @@ export const useSupabaseData = () => {
     } catch (error) {
       console.error('Erreur lors du rechargement des bons:', error);
     }
+  };
+
   // Realtime subscriptions
   useEffect(() => {
     const channel = supabase
