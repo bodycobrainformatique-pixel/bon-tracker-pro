@@ -75,20 +75,22 @@ export const BonFormDialog = ({
     }
   }, [bon, isOpen]);
 
-  // Auto-set km initial based on last bon's km final for selected vehicle
+  // Auto-set fuel type based on selected vehicle
   useEffect(() => {
-    if (!bon && formData.vehiculeId && !formData.kmInitial) {
-      // Find the last bon for this vehicle (most recent by date)
-      const vehicleBons = bons
-        .filter(b => b.vehiculeId === formData.vehiculeId && b.kmFinal)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      
-      if (vehicleBons.length > 0) {
-        const lastBon = vehicleBons[0];
-        setFormData(prev => ({ ...prev, kmInitial: lastBon.kmFinal }));
+    if (formData.vehiculeId && !bon) {
+      const selectedVehicle = vehicules.find(v => v.id === formData.vehiculeId);
+      if (selectedVehicle) {
+        // Auto-set fuel type from vehicle
+        const vehicleFuelType = selectedVehicle.typeCarburant === 'gasoil' ? 'gasoil' : 
+                               selectedVehicle.typeCarburant === 'essence' ? 'essence' : 'gasoil_50';
+        
+        setFormData(prev => ({ 
+          ...prev, 
+          type: vehicleFuelType
+        }));
       }
     }
-  }, [formData.vehiculeId, bon, bons]);
+  }, [formData.vehiculeId, bon, vehicules]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,7 +104,6 @@ export const BonFormDialog = ({
       });
       return;
     }
-
 
     // Remove km_final and distance from form data - managed by database trigger
     const { kmFinal, distance, ...submitData } = formData;
@@ -150,23 +151,6 @@ export const BonFormDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="type">Type *</Label>
-              <Select
-                value={formData.type}
-                onValueChange={(value: BonType) => handleInputChange('type', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="gasoil">Gasoil</SelectItem>
-                  <SelectItem value="essence">Essence</SelectItem>
-                  <SelectItem value="gasoil_50">Gasoil 50</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="montant">Montant (TND) *</Label>
               <Input
                 id="montant"
@@ -177,25 +161,6 @@ export const BonFormDialog = ({
                 onChange={(e) => handleInputChange('montant', parseFloat(e.target.value) || 0)}
                 required
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="chauffeur">Chauffeur *</Label>
-              <Select
-                value={formData.chauffeurId}
-                onValueChange={(value) => handleInputChange('chauffeurId', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un chauffeur" />
-                </SelectTrigger>
-                <SelectContent>
-                  {activeChauffeurs.map(chauffeur => (
-                    <SelectItem key={chauffeur.id} value={chauffeur.id}>
-                      {chauffeur.prenom} {chauffeur.nom} ({chauffeur.matricule})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="space-y-2">
@@ -211,6 +176,43 @@ export const BonFormDialog = ({
                   {activeVehicules.map(vehicule => (
                     <SelectItem key={vehicule.id} value={vehicule.id}>
                       {vehicule.immatriculation} - {vehicule.marque} {vehicule.modele}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="type">Type (automatique)</Label>
+              <Select
+                value={formData.type}
+                onValueChange={(value: BonType) => handleInputChange('type', value)}
+                disabled
+              >
+                <SelectTrigger className="bg-muted">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gasoil">Gasoil</SelectItem>
+                  <SelectItem value="essence">Essence</SelectItem>
+                  <SelectItem value="gasoil_50">Gasoil 50</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="chauffeur">Chauffeur *</Label>
+              <Select
+                value={formData.chauffeurId}
+                onValueChange={(value) => handleInputChange('chauffeurId', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un chauffeur" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeChauffeurs.map(chauffeur => (
+                    <SelectItem key={chauffeur.id} value={chauffeur.id}>
+                      {chauffeur.prenom} {chauffeur.nom} ({chauffeur.matricule})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -233,6 +235,9 @@ export const BonFormDialog = ({
                     onChange={(e) => handleInputChange('kmInitial', parseInt(e.target.value) || undefined)}
                     placeholder="45230"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Laissez vide si le chauffeur n'a pas encore utilisé le véhicule
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -242,9 +247,12 @@ export const BonFormDialog = ({
                     type="number"
                     value={formData.kmFinal || ''}
                     disabled
-                    placeholder="Renseigné automatiquement"
+                    placeholder="Calculé automatiquement"
                     className="bg-muted"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Sera renseigné automatiquement par le prochain bon
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -253,7 +261,11 @@ export const BonFormDialog = ({
                     value={formData.distance ? `${formData.distance} km` : ''}
                     disabled
                     placeholder="Calculée automatiquement"
+                    className="bg-muted"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Calculée automatiquement: km final - km initial
+                  </p>
                 </div>
               </div>
             </CardContent>

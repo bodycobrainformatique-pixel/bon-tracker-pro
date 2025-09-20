@@ -299,7 +299,8 @@ export const useSupabaseData = () => {
           date: updates.date,
           type: updates.type,
           montant: updates.montant,
-          distance: updates.distance,
+          km_initial: updates.kmInitial,
+          // km_final and distance are managed by database trigger
           chauffeur_id: updates.chauffeurId,
           vehicule_id: updates.vehiculeId,
           notes: updates.notes,
@@ -312,11 +313,9 @@ export const useSupabaseData = () => {
         throw error;
       }
 
-      setBons(prev => prev.map(bon => 
-        bon.id === id 
-          ? { ...bon, ...updates, updatedAt: new Date().toISOString() }
-          : bon
-      ));
+      // Small delay to ensure trigger execution, then refresh all bons data
+      await new Promise(resolve => setTimeout(resolve, 100));
+      await reloadBonsData();
     } catch (error) {
       console.error('Erreur lors de la mise à jour du bon:', error);
       throw error;
