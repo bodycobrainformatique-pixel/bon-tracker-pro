@@ -253,7 +253,12 @@ export const TracabilityApp = () => {
           </TabsContent>
 
           <TabsContent value="rapports" className="space-y-6">
-            <RapportsTab vehicules={vehicules} />
+            <RapportsTab 
+              vehicules={vehicules} 
+              chauffeurs={chauffeurs}
+              bons={bons}
+              anomalies={anomalies}
+            />
           </TabsContent>
 
           <TabsContent value="parametres" className="space-y-6">

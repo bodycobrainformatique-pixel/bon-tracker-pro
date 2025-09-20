@@ -4,362 +4,663 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Vehicule } from '@/types';
-import { supabase } from '@/integrations/supabase/client';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Bon, Vehicule, Chauffeur, Anomalie } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Calendar, Car, RefreshCw } from 'lucide-react';
+import { Download, Calendar, Car, User, RefreshCw, AlertTriangle, TrendingUp, Fuel } from 'lucide-react';
 
-interface DailyStats {
-  vehicule_id: string;
-  immatriculation: string;
-  jour: string;
-  km_total: number;
-  cout_tnd: number;
-  litres_total: number;
-  l_per_100km: number;
+interface VehiculeReportStats {
+  totalKm: number;
+  totalMontant: number;
+  totalBons: number;
+  avgConsumption: number;
+  anomaliesCount: number;
+  fuelTypes: { [key: string]: number };
+  monthlyData: Array<{
+    month: string;
+    km: number;
+    montant: number;
+    bons: number;
+  }>;
+}
+
+interface ChauffeurReportStats {
+  totalKm: number;
+  totalMontant: number;
+  totalBons: number;
+  avgKmPerBon: number;
+  anomaliesCount: number;
+  vehiclesUsed: number;
+  monthlyData: Array<{
+    month: string;
+    km: number;
+    montant: number;
+    bons: number;
+  }>;
 }
 
 interface RapportsTabProps {
   vehicules: Vehicule[];
+  chauffeurs: Chauffeur[];
+  bons: Bon[];
+  anomalies: Anomalie[];
 }
 
-export const RapportsTab = ({ vehicules }: RapportsTabProps) => {
+export const RapportsTab = ({ vehicules, chauffeurs, bons, anomalies }: RapportsTabProps) => {
+  const [reportType, setReportType] = useState<'vehicule' | 'chauffeur'>('vehicule');
   const [selectedVehiculeId, setSelectedVehiculeId] = useState<string>('');
-  const [dateFrom, setDateFrom] = useState(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
-  const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0]);
-  const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [selectedChauffeurId, setSelectedChauffeurId] = useState<string>('');
+  const [dateFrom, setDateFrom] = useState<string>(''); // Empty for "all time"
+  const [dateTo, setDateTo] = useState<string>(''); // Empty for "all time"
+  const [vehiculeStats, setVehiculeStats] = useState<VehiculeReportStats | null>(null);
+  const [chauffeurStats, setChauffeurStats] = useState<ChauffeurReportStats | null>(null);
   const { toast } = useToast();
 
-  const loadDailyStats = async () => {
-    if (!selectedVehiculeId) return;
-    
-    setLoading(true);
-    try {
-      console.log('📊 Loading daily stats for vehicle:', selectedVehiculeId);
-      
-      let query = supabase
-        .from('v_vehicule_daily_stats')
-        .select('*')
-        .eq('vehicule_id', selectedVehiculeId)
-        .order('jour', { ascending: true });
+  // Filter bons based on selected criteria and date range
+  const getFilteredBons = () => {
+    let filtered = bons;
 
-      if (dateFrom) {
-        query = query.gte('jour', dateFrom);
-      }
-      if (dateTo) {
-        query = query.lte('jour', dateTo);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      console.log('📊 Daily stats loaded:', data?.length || 0, 'records');
-      setDailyStats(data || []);
-    } catch (error: any) {
-      console.error('❌ Error loading daily stats:', error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de charger les statistiques: " + error.message
-      });
-    } finally {
-      setLoading(false);
+    // Filter by vehicle or chauffeur
+    if (reportType === 'vehicule' && selectedVehiculeId) {
+      filtered = filtered.filter(bon => bon.vehiculeId === selectedVehiculeId);
+    } else if (reportType === 'chauffeur' && selectedChauffeurId) {
+      filtered = filtered.filter(bon => bon.chauffeurId === selectedChauffeurId);
     }
+
+    // Filter by date range if specified
+    if (dateFrom) {
+      filtered = filtered.filter(bon => bon.date >= dateFrom);
+    }
+    if (dateTo) {
+      filtered = filtered.filter(bon => bon.date <= dateTo);
+    }
+
+    return filtered;
   };
 
-  // Real-time subscription to update reports when bons change
-  useEffect(() => {
-    console.log('🔔 Setting up real-time subscription for reports');
+  // Calculate vehicle statistics
+  const calculateVehiculeStats = (filteredBons: Bon[]): VehiculeReportStats => {
+    const totalKm = filteredBons.reduce((sum, bon) => sum + (bon.distance || 0), 0);
+    const totalMontant = filteredBons.reduce((sum, bon) => sum + bon.montant, 0);
+    const totalBons = filteredBons.length;
     
-    const channel = supabase
-      .channel('reports-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bons' }, (payload) => {
-        console.log('📊 Bons changed, refreshing reports data:', payload.eventType);
-        if (selectedVehiculeId) {
-          loadDailyStats();
-        }
-      })
-      .subscribe((status) => {
-        console.log('📡 Reports subscription status:', status);
-      });
+    // Calculate fuel consumption (approximate)
+    const avgConsumption = totalKm > 0 ? (totalMontant / totalKm) * 100 : 0; // TND per 100km as proxy
+    
+    // Count related anomalies
+    const vehicleAnomalies = anomalies.filter(anomalie => {
+      const bonIds = filteredBons.map(b => b.id);
+      return bonIds.includes(anomalie.bonId) && anomalie.statut === 'a_verifier';
+    });
+    
+    // Group by fuel type
+    const fuelTypes = filteredBons.reduce((acc, bon) => {
+      acc[bon.type] = (acc[bon.type] || 0) + bon.montant;
+      return acc;
+    }, {} as { [key: string]: number });
 
-    return () => {
-      console.log('🛑 Removing reports subscription');
-      supabase.removeChannel(channel);
+    // Group by month for trends
+    const monthlyData = filteredBons.reduce((acc, bon) => {
+      const month = bon.date.substring(0, 7); // YYYY-MM
+      const existing = acc.find(item => item.month === month);
+      if (existing) {
+        existing.km += bon.distance || 0;
+        existing.montant += bon.montant;
+        existing.bons += 1;
+      } else {
+        acc.push({
+          month,
+          km: bon.distance || 0,
+          montant: bon.montant,
+          bons: 1
+        });
+      }
+      return acc;
+    }, [] as Array<{ month: string; km: number; montant: number; bons: number }>);
+
+    return {
+      totalKm,
+      totalMontant,
+      totalBons,
+      avgConsumption,
+      anomaliesCount: vehicleAnomalies.length,
+      fuelTypes,
+      monthlyData: monthlyData.sort((a, b) => a.month.localeCompare(b.month))
     };
-  }, [selectedVehiculeId]);
+  };
 
+  // Calculate chauffeur statistics
+  const calculateChauffeurStats = (filteredBons: Bon[]): ChauffeurReportStats => {
+    const totalKm = filteredBons.reduce((sum, bon) => sum + (bon.distance || 0), 0);
+    const totalMontant = filteredBons.reduce((sum, bon) => sum + bon.montant, 0);
+    const totalBons = filteredBons.length;
+    const avgKmPerBon = totalBons > 0 ? totalKm / totalBons : 0;
+    
+    // Count unique vehicles used
+    const uniqueVehicles = new Set(filteredBons.map(bon => bon.vehiculeId));
+    const vehiclesUsed = uniqueVehicles.size;
+    
+    // Count related anomalies
+    const chauffeurAnomalies = anomalies.filter(anomalie => {
+      const bonIds = filteredBons.map(b => b.id);
+      return bonIds.includes(anomalie.bonId) && anomalie.statut === 'a_verifier';
+    });
+
+    // Group by month for trends
+    const monthlyData = filteredBons.reduce((acc, bon) => {
+      const month = bon.date.substring(0, 7); // YYYY-MM
+      const existing = acc.find(item => item.month === month);
+      if (existing) {
+        existing.km += bon.distance || 0;
+        existing.montant += bon.montant;
+        existing.bons += 1;
+      } else {
+        acc.push({
+          month,
+          km: bon.distance || 0,
+          montant: bon.montant,
+          bons: 1
+        });
+      }
+      return acc;
+    }, [] as Array<{ month: string; km: number; montant: number; bons: number }>);
+
+    return {
+      totalKm,
+      totalMontant,
+      totalBons,
+      avgKmPerBon,
+      anomaliesCount: chauffeurAnomalies.length,
+      vehiclesUsed,
+      monthlyData: monthlyData.sort((a, b) => a.month.localeCompare(b.month))
+    };
+  };
+
+  // Update stats when selection or filters change
   useEffect(() => {
-    if (selectedVehiculeId) {
-      loadDailyStats();
+    const filteredBons = getFilteredBons();
+    
+    if (reportType === 'vehicule' && selectedVehiculeId) {
+      setVehiculeStats(calculateVehiculeStats(filteredBons));
+    } else if (reportType === 'chauffeur' && selectedChauffeurId) {
+      setChauffeurStats(calculateChauffeurStats(filteredBons));
     }
-  }, [selectedVehiculeId, dateFrom, dateTo]);
+  }, [reportType, selectedVehiculeId, selectedChauffeurId, dateFrom, dateTo, bons, anomalies]);
 
+  // Export functionality
   const exportCSV = () => {
-    if (dailyStats.length === 0) return;
+    const filteredBons = getFilteredBons();
+    if (filteredBons.length === 0) return;
 
-    const headers = ['Date', 'Immatriculation', 'KM Total', 'Coût (TND)', 'Litres Total', 'L/100km'];
+    const headers = ['Date', 'Numéro', 'Type', 'Montant', 'KM Initial', 'KM Final', 'Distance', 'Véhicule', 'Chauffeur'];
     const csvContent = [
       headers.join(','),
-      ...dailyStats.map(row => [
-        row.jour,
-        row.immatriculation,
-        row.km_total?.toFixed(2) || '0',
-        row.cout_tnd?.toFixed(2) || '0',
-        row.litres_total?.toFixed(2) || '0',
-        row.l_per_100km?.toFixed(2) || '0'
-      ].join(','))
+      ...filteredBons.map(bon => {
+        const vehicule = vehicules.find(v => v.id === bon.vehiculeId);
+        const chauffeur = chauffeurs.find(c => c.id === bon.chauffeurId);
+        return [
+          bon.date,
+          bon.numero,
+          bon.type,
+          bon.montant.toFixed(2),
+          bon.kmInitial || '',
+          bon.kmFinal || '',
+          bon.distance?.toFixed(2) || '',
+          vehicule?.immatriculation || '',
+          `${chauffeur?.prenom || ''} ${chauffeur?.nom || ''}`
+        ].join(',');
+      })
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `rapport-vehicule-${selectedVehiculeId}-${dateFrom}-${dateTo}.csv`);
+    link.setAttribute('download', `rapport-${reportType}-${Date.now()}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // Calculate totals
-  const totals = dailyStats.reduce((acc, row) => ({
-    km_total: acc.km_total + (row.km_total || 0),
-    cout_tnd: acc.cout_tnd + (row.cout_tnd || 0),
-    litres_total: acc.litres_total + (row.litres_total || 0)
-  }), { km_total: 0, cout_tnd: 0, litres_total: 0 });
-
-  const avgConsumption = totals.km_total > 0 ? (totals.litres_total * 100) / totals.km_total : 0;
+  // Prepare chart colors
+  const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--destructive))'];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 mb-4">
-        <Car className="h-5 w-5" />
-        <h2 className="text-xl font-semibold">Rapports par véhicule</h2>
+        <TrendingUp className="h-5 w-5" />
+        <h2 className="text-xl font-semibold">Rapports et Analyses</h2>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Filtres
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="vehicule">Véhicule</Label>
-              <Select value={selectedVehiculeId} onValueChange={setSelectedVehiculeId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un véhicule" />
-                </SelectTrigger>
-                <SelectContent>
-                  {vehicules.map(vehicule => (
-                    <SelectItem key={vehicule.id} value={vehicule.id}>
-                      {vehicule.immatriculation} - {vehicule.marque} {vehicule.modele}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      <Tabs value={reportType} onValueChange={(value) => setReportType(value as 'vehicule' | 'chauffeur')}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="vehicule" className="flex items-center gap-2">
+            <Car className="h-4 w-4" />
+            Par Véhicule
+          </TabsTrigger>
+          <TabsTrigger value="chauffeur" className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Par Chauffeur
+          </TabsTrigger>
+        </TabsList>
 
-            <div className="space-y-2">
-              <Label htmlFor="dateFrom">Du</Label>
-              <Input
-                id="dateFrom"
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-              />
-            </div>
+        {/* Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Filtres
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {reportType === 'vehicule' ? (
+                <div className="space-y-2">
+                  <Label htmlFor="vehicule">Véhicule</Label>
+                  <Select value={selectedVehiculeId} onValueChange={setSelectedVehiculeId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un véhicule" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vehicules.map(vehicule => (
+                        <SelectItem key={vehicule.id} value={vehicule.id}>
+                          {vehicule.immatriculation} - {vehicule.marque} {vehicule.modele}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="chauffeur">Chauffeur</Label>
+                  <Select value={selectedChauffeurId} onValueChange={setSelectedChauffeurId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un chauffeur" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {chauffeurs.map(chauffeur => (
+                        <SelectItem key={chauffeur.id} value={chauffeur.id}>
+                          {chauffeur.prenom} {chauffeur.nom} ({chauffeur.matricule})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
-            <div className="space-y-2">
-              <Label htmlFor="dateTo">Au</Label>
-              <Input
-                id="dateTo"
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateFrom">Du (optionnel)</Label>
+                <Input
+                  id="dateFrom"
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  placeholder="Depuis toujours"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label>&nbsp;</Label>
-              <div className="flex gap-2">
-                <Button 
-                  onClick={() => loadDailyStats()} 
-                  disabled={!selectedVehiculeId}
-                  variant="outline"
-                  size="sm"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Actualiser
-                </Button>
-                <Button 
-                  onClick={exportCSV} 
-                  disabled={!selectedVehiculeId || dailyStats.length === 0}
-                  size="sm"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  CSV
-                </Button>
+              <div className="space-y-2">
+                <Label htmlFor="dateTo">Au (optionnel)</Label>
+                <Input
+                  id="dateTo"
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  placeholder="Jusqu'à aujourd'hui"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>&nbsp;</Label>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => {
+                      setDateFrom('');
+                      setDateTo('');
+                    }}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Tout temps
+                  </Button>
+                  <Button 
+                    onClick={exportCSV} 
+                    disabled={!((reportType === 'vehicule' && selectedVehiculeId) || (reportType === 'chauffeur' && selectedChauffeurId))}
+                    size="sm"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    CSV
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {selectedVehiculeId && (
-        <>
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Distance totale</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{totals.km_total.toFixed(1)} km</div>
-              </CardContent>
-            </Card>
+        <TabsContent value="vehicule">
+          {selectedVehiculeId && vehiculeStats && (
+            <>
+              {/* Vehicle Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Distance totale</CardTitle>
+                    <Car className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{vehiculeStats.totalKm.toFixed(1)} km</div>
+                  </CardContent>
+                </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Coût total</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{totals.cout_tnd.toFixed(2)} TND</div>
-              </CardContent>
-            </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Coût total</CardTitle>
+                    <Fuel className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{vehiculeStats.totalMontant.toFixed(2)} TND</div>
+                  </CardContent>
+                </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Litres totaux</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{totals.litres_total.toFixed(1)} L</div>
-              </CardContent>
-            </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Nombre de bons</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{vehiculeStats.totalBons}</div>
+                  </CardContent>
+                </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Consommation moy.</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{avgConsumption.toFixed(1)} L/100km</div>
-              </CardContent>
-            </Card>
-          </div>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Anomalies</CardTitle>
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-destructive">{vehiculeStats.anomaliesCount}</div>
+                  </CardContent>
+                </Card>
+              </div>
 
-          {/* Charts */}
-          {dailyStats.length > 0 && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Distance journalière (km)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={dailyStats}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="jour" />
-                      <YAxis />
-                      <Tooltip 
-                        formatter={(value: number) => [`${value.toFixed(1)} km`, 'Distance']}
-                        labelFormatter={(label) => `Date: ${label}`}
-                      />
-                      <Line type="monotone" dataKey="km_total" stroke="hsl(var(--primary))" strokeWidth={2} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+              {/* Vehicle Charts */}
+              {vehiculeStats.monthlyData.length > 0 && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Évolution mensuelle - Distance</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={vehiculeStats.monthlyData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <Tooltip 
+                            formatter={(value: number) => [`${value.toFixed(1)} km`, 'Distance']}
+                            labelFormatter={(label) => `Mois: ${label}`}
+                          />
+                          <Line type="monotone" dataKey="km" stroke="hsl(var(--primary))" strokeWidth={2} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Litres consommés</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={dailyStats}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="jour" />
-                      <YAxis />
-                      <Tooltip 
-                        formatter={(value: number) => [`${value.toFixed(1)} L`, 'Litres']}
-                        labelFormatter={(label) => `Date: ${label}`}
-                      />
-                      <Bar dataKey="litres_total" fill="hsl(var(--secondary))" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Évolution mensuelle - Coût</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={vehiculeStats.monthlyData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <Tooltip 
+                            formatter={(value: number) => [`${value.toFixed(2)} TND`, 'Coût']}
+                            labelFormatter={(label) => `Mois: ${label}`}
+                          />
+                          <Bar dataKey="montant" fill="hsl(var(--secondary))" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Coût journalier (TND)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={dailyStats}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="jour" />
-                      <YAxis />
-                      <Tooltip 
-                        formatter={(value: number) => [`${value.toFixed(2)} TND`, 'Coût']}
-                        labelFormatter={(label) => `Date: ${label}`}
-                      />
-                      <Bar dataKey="cout_tnd" fill="hsl(var(--destructive))" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Répartition par type de carburant</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <PieChart>
+                          <Pie
+                            data={Object.entries(vehiculeStats.fuelTypes).map(([type, amount]) => ({
+                              name: type,
+                              value: amount
+                            }))}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {Object.entries(vehiculeStats.fuelTypes).map((_, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value: number) => [`${value.toFixed(2)} TND`, 'Montant']} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Consommation (L/100km)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={dailyStats}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="jour" />
-                      <YAxis />
-                      <Tooltip 
-                        formatter={(value: number) => [`${value?.toFixed(1) || '0'} L/100km`, 'Consommation']}
-                        labelFormatter={(label) => `Date: ${label}`}
-                      />
-                      <Line type="monotone" dataKey="l_per_100km" stroke="hsl(var(--accent-foreground))" strokeWidth={2} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {loading && (
-            <Card>
-              <CardContent className="py-8">
-                <div className="flex items-center justify-center gap-2">
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                  <span>Chargement des statistiques...</span>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Nombre de bons par mois</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={vehiculeStats.monthlyData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <Tooltip 
+                            formatter={(value: number) => [`${value}`, 'Bons']}
+                            labelFormatter={(label) => `Mois: ${label}`}
+                          />
+                          <Bar dataKey="bons" fill="hsl(var(--accent))" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
+              )}
+            </>
           )}
 
-          {!loading && dailyStats.length === 0 && selectedVehiculeId && (
+          {!selectedVehiculeId && (
             <Card>
               <CardContent className="py-8">
                 <div className="text-center text-muted-foreground">
-                  Aucune donnée disponible pour cette période
+                  Sélectionnez un véhicule pour voir le rapport détaillé
                 </div>
               </CardContent>
             </Card>
           )}
-        </>
-      )}
+        </TabsContent>
+
+        <TabsContent value="chauffeur">
+          {selectedChauffeurId && chauffeurStats && (
+            <>
+              {/* Chauffeur Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Distance totale</CardTitle>
+                    <User className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{chauffeurStats.totalKm.toFixed(1)} km</div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Coût total</CardTitle>
+                    <Fuel className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{chauffeurStats.totalMontant.toFixed(2)} TND</div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Nombre de bons</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{chauffeurStats.totalBons}</div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Véhicules utilisés</CardTitle>
+                    <Car className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{chauffeurStats.vehiclesUsed}</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Distance moy. par bon</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{chauffeurStats.avgKmPerBon.toFixed(1)} km</div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Anomalies</CardTitle>
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-destructive">{chauffeurStats.anomaliesCount}</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Chauffeur Charts */}
+              {chauffeurStats.monthlyData.length > 0 && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Évolution mensuelle - Distance</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={chauffeurStats.monthlyData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <Tooltip 
+                            formatter={(value: number) => [`${value.toFixed(1)} km`, 'Distance']}
+                            labelFormatter={(label) => `Mois: ${label}`}
+                          />
+                          <Line type="monotone" dataKey="km" stroke="hsl(var(--primary))" strokeWidth={2} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Évolution mensuelle - Coût</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={chauffeurStats.monthlyData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <Tooltip 
+                            formatter={(value: number) => [`${value.toFixed(2)} TND`, 'Coût']}
+                            labelFormatter={(label) => `Mois: ${label}`}
+                          />
+                          <Bar dataKey="montant" fill="hsl(var(--secondary))" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Nombre de bons par mois</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={chauffeurStats.monthlyData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <Tooltip 
+                            formatter={(value: number) => [`${value}`, 'Bons']}
+                            labelFormatter={(label) => `Mois: ${label}`}
+                          />
+                          <Bar dataKey="bons" fill="hsl(var(--accent))" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Performance (km/bon)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={chauffeurStats.monthlyData.map(item => ({
+                          ...item,
+                          kmPerBon: item.bons > 0 ? item.km / item.bons : 0
+                        }))}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <Tooltip 
+                            formatter={(value: number) => [`${value.toFixed(1)} km/bon`, 'Performance']}
+                            labelFormatter={(label) => `Mois: ${label}`}
+                          />
+                          <Line type="monotone" dataKey="kmPerBon" stroke="hsl(var(--destructive))" strokeWidth={2} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </>
+          )}
+
+          {!selectedChauffeurId && (
+            <Card>
+              <CardContent className="py-8">
+                <div className="text-center text-muted-foreground">
+                  Sélectionnez un chauffeur pour voir le rapport détaillé
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
+
     </div>
   );
 };
