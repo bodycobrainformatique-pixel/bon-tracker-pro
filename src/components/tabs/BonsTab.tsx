@@ -320,6 +320,7 @@ export const BonsTab = ({
         bon={editingBon}
         chauffeurs={chauffeurs}
         vehicules={vehicules}
+        bons={bons}
       />
     </div>
   );

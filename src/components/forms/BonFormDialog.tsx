@@ -17,6 +17,7 @@ interface BonFormDialogProps {
   bon?: Bon | null;
   chauffeurs: Chauffeur[];
   vehicules: Vehicule[];
+  bons: Bon[];
 }
 
 export const BonFormDialog = ({
@@ -25,7 +26,8 @@ export const BonFormDialog = ({
   onSubmit,
   bon,
   chauffeurs,
-  vehicules
+  vehicules,
+  bons
 }: BonFormDialogProps) => {
   const [formData, setFormData] = useState<Omit<Bon, 'id' | 'createdAt' | 'updatedAt'>>({
     numero: '',
@@ -73,6 +75,21 @@ export const BonFormDialog = ({
       });
     }
   }, [bon, isOpen]);
+
+  // Auto-set km initial based on last bon's km final for selected vehicle
+  useEffect(() => {
+    if (!bon && formData.vehiculeId && !formData.kmInitial) {
+      // Find the last bon for this vehicle (most recent by date)
+      const vehicleBons = bons
+        .filter(b => b.vehiculeId === formData.vehiculeId && b.kmFinal)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      if (vehicleBons.length > 0) {
+        const lastBon = vehicleBons[0];
+        setFormData(prev => ({ ...prev, kmInitial: lastBon.kmFinal }));
+      }
+    }
+  }, [formData.vehiculeId, bon, bons]);
 
   // Calcul automatique de la distance
   useEffect(() => {
