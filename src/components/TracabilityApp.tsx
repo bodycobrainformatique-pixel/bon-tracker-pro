@@ -18,6 +18,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { Truck, Users, FileText, AlertTriangle, LogOut, Save, Settings } from 'lucide-react';
 
+import { DiagnosticTest } from './DiagnosticTest';
+
 export const TracabilityApp = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -130,8 +132,11 @@ export const TracabilityApp = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
+      <div className="min-h-screen bg-background">
+        {/* Quick diagnostic - remove this after testing */}
+        <DiagnosticTest />
+        
+        {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">

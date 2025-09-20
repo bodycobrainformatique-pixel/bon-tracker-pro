@@ -44,7 +44,7 @@ export interface Vehicule {
   dateAchat?: string;
   prixAchat?: number; // en TND
   numeroSerie?: string;
-  statut: 'actif' | 'inactif';
+  statut: 'en_service' | 'hors_service';
   consommationReference?: number; // L/100km
   coutKmReference?: number; // TND/km
   createdAt: string;

@@ -107,7 +107,7 @@ export const VehiculeFormDialog = ({
       dateAchat: undefined, // Will be handled as null in DB
       prixAchat: undefined, // Will be handled as null in DB
       numeroSerie: formData.notes || '',
-      statut: 'actif' as const
+      statut: 'en_service' as const
     };
 
     onSubmit(submitData);

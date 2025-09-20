@@ -100,7 +100,7 @@ const mapDbVehiculeToVehicule = (db: DbVehicule): Vehicule => ({
   dateAchat: undefined,
   prixAchat: undefined,
   numeroSerie: db.notes || '',
-  statut: db.statut as 'actif' | 'inactif',
+  statut: db.statut as 'en_service' | 'hors_service',
   consommationReference: undefined,
   coutKmReference: undefined,
   createdAt: db.created_at,

@@ -112,7 +112,7 @@ export const BonFormDialog = ({
   };
 
   const activeChauffeurs = chauffeurs.filter(c => c.statut === 'actif');
-  const activeVehicules = vehicules.filter(v => v.statut === 'actif');
+  const activeVehicules = vehicules.filter(v => v.statut === 'en_service');
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

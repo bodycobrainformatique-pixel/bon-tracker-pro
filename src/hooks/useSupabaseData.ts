@@ -103,7 +103,7 @@ const mapDbVehiculeToVehicule = (dbVehicule: DbVehicule): Vehicule => ({
   numeroSerie: dbVehicule.notes || '',
   consommationReference: undefined, // Not directly mapped
   coutKmReference: undefined, // Not directly mapped
-  statut: (dbVehicule.statut === 'en_service' ? 'actif' : 'inactif') as 'actif' | 'inactif',
+  statut: dbVehicule.statut as 'en_service' | 'hors_service',
   createdAt: dbVehicule.created_at,
   updatedAt: dbVehicule.updated_at
 });
@@ -535,7 +535,7 @@ export const useSupabaseData = () => {
           date_mise_en_service: vehiculeData.dateAchat ? vehiculeData.dateAchat : null,
           cout_acquisition: vehiculeData.prixAchat || null,
           cout_maintenance_annuel: 0,
-          statut: vehiculeData.statut === 'actif' ? 'en_service' : 'hors_service',
+          statut: vehiculeData.statut === 'en_service' ? 'en_service' : 'hors_service',
           notes: vehiculeData.numeroSerie || null
         }])
         .select()
@@ -569,7 +569,7 @@ export const useSupabaseData = () => {
           capacite_reservoir: updates.capaciteReservoir,
           date_mise_en_service: updates.dateAchat || null,
           cout_acquisition: updates.prixAchat,
-          statut: updates.statut === 'actif' ? 'en_service' : 'hors_service',
+          statut: updates.statut === 'en_service' ? 'en_service' : 'hors_service',
           notes: updates.numeroSerie || null,
           updated_at: new Date().toISOString()
         })
@@ -692,7 +692,7 @@ export const useSupabaseData = () => {
             date_mise_en_service: vehicule.dateAchat || new Date().toISOString().split('T')[0],
             cout_acquisition: vehicule.prixAchat || 0,
             cout_maintenance_annuel: vehicule.consommationReference || 0,
-            statut: vehicule.statut === 'actif' ? 'en_service' : 'hors_service',
+            statut: vehicule.statut === 'en_service' ? 'en_service' : 'hors_service',
             created_at: vehicule.createdAt,
             updated_at: vehicule.updatedAt
           });

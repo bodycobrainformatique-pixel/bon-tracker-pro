@@ -122,8 +122,8 @@ export const VehiculesTab = ({
                 </div>
                 
                 <div>
-                  <Badge className={vehicule.statut === 'actif' ? 'bg-success text-success-foreground' : 'bg-muted text-muted-foreground'}>
-                    {vehicule.statut === 'actif' ? 'Actif' : 'Inactif'}
+                  <Badge className={vehicule.statut === 'en_service' ? 'bg-success text-success-foreground' : 'bg-muted text-muted-foreground'}>
+                    {vehicule.statut === 'en_service' ? 'En Service' : 'Hors Service'}
                   </Badge>
                   {vehicule.typeCarburant && (
                     <div className="text-xs text-muted-foreground mt-1">
