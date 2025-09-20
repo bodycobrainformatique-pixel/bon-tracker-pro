@@ -1,17 +1,29 @@
 // Composant principal de l'application de traçabilité
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTracabilityData } from '@/hooks/useTracabilityData';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { BonFilters } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { BonsTab } from './tabs/BonsTab';
 import { ChauffeursTab } from './tabs/ChauffeursTab';
 import { VehiculesTab } from './tabs/VehiculesTab';
 import { AnomaliesTab } from './tabs/AnomaliesTab';
 import { StatsBar } from './StatsBar';
-import { Truck, Users, FileText, AlertTriangle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { User, Session } from '@supabase/supabase-js';
+import { Truck, Users, FileText, AlertTriangle, LogOut, Save } from 'lucide-react';
 
 export const TracabilityApp = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
   const {
     bons,
     chauffeurs,
@@ -32,8 +44,71 @@ export const TracabilityApp = () => {
     getStatistics
   } = useTracabilityData();
 
+  const { syncWithLocalStorage } = useSupabaseData();
+
   const [activeTab, setActiveTab] = useState('bons');
   const [bonFilters, setBonFilters] = useState<BonFilters>({});
+
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (!session?.user && event === 'SIGNED_OUT') {
+          navigate('/auth');
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (!session?.user) {
+        navigate('/auth');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Déconnexion réussie",
+        description: "Vous avez été déconnecté",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur de déconnexion",
+        description: "Une erreur s'est produite lors de la déconnexion",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveToDatabase = async () => {
+    setIsSaving(true);
+    try {
+      await syncWithLocalStorage();
+      toast({
+        title: "Données sauvegardées",
+        description: "Toutes les données ont été sauvegardées dans la base de données",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur de sauvegarde",
+        description: "Une erreur s'est produite lors de la sauvegarde",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const filteredBons = getFilteredBons(bonFilters);
   const statistics = getStatistics(filteredBons);
@@ -64,12 +139,33 @@ export const TracabilityApp = () => {
                   Traçabilité des Bons
                 </h1>
                 <p className="text-muted-foreground">
-                  Gestion des bons gasoil et espèces
+                  Connecté en tant que: {user?.email}
                 </p>
               </div>
             </div>
             
-            <StatsBar statistics={statistics} />
+            <div className="flex items-center gap-4">
+              <StatsBar statistics={statistics} />
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleSaveToDatabase}
+                  disabled={isSaving}
+                  variant="default"
+                  size="sm"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
+                </Button>
+                <Button
+                  onClick={handleSignOut}
+                  variant="outline"
+                  size="sm"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Déconnexion
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </header>

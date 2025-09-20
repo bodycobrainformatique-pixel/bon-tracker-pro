@@ -101,10 +101,10 @@ const mapDbVehiculeToVehicule = (dbVehicule: DbVehicule): Vehicule => ({
   typeCarburant: dbVehicule.type_carburant as 'gasoil' | 'essence',
   capaciteReservoir: Number(dbVehicule.capacite_reservoir),
   kilometrage: Number(dbVehicule.kilometrage),
-  dateMiseEnService: dbVehicule.date_mise_en_service,
-  coutAcquisition: Number(dbVehicule.cout_acquisition),
-  coutMaintenanceAnnuel: Number(dbVehicule.cout_maintenance_annuel || 0),
-  statut: dbVehicule.statut as 'en_service' | 'en_panne' | 'en_maintenance' | 'hors_service',
+  dateAchat: dbVehicule.date_mise_en_service,
+  prixAchat: Number(dbVehicule.cout_acquisition),
+  consommationReference: Number(dbVehicule.cout_maintenance_annuel || 0),
+  statut: (dbVehicule.statut === 'en_service' || dbVehicule.statut === 'en_panne' || dbVehicule.statut === 'en_maintenance' ? 'actif' : 'inactif') as 'actif' | 'inactif',
   createdAt: dbVehicule.created_at,
   updatedAt: dbVehicule.updated_at
 });
@@ -118,7 +118,7 @@ const mapDbBonToBon = (dbBon: DbBon): Bon => ({
   distance: dbBon.distance ? Number(dbBon.distance) : undefined,
   chauffeurId: dbBon.chauffeur_id,
   vehiculeId: dbBon.vehicule_id,
-  status: dbBon.status as 'en_cours' | 'valide' | 'annule',
+  status: (dbBon.status === 'en_cours' ? 'draft' : dbBon.status === 'valide' ? 'completed' : 'validated') as 'draft' | 'completed' | 'validated',
   notes: dbBon.notes || undefined,
   createdAt: dbBon.created_at,
   updatedAt: dbBon.updated_at
@@ -126,16 +126,17 @@ const mapDbBonToBon = (dbBon: DbBon): Bon => ({
 
 const mapDbAnomalieToAnomalie = (dbAnomalie: DbAnomalie): Anomalie => ({
   id: dbAnomalie.id,
-  type: dbAnomalie.type as 'consommation_elevee' | 'distance_incoherente' | 'duree_anormale' | 'montant_suspect' | 'frequence_elevee',
-  titre: dbAnomalie.type.replace(/_/g, ' ').toUpperCase(),
-  description: dbAnomalie.description,
-  gravite: dbAnomalie.severite as 'faible' | 'moyenne' | 'elevee',
-  statut: dbAnomalie.statut as 'a_verifier' | 'resolue' | 'ignoree',
-  scoreRisque: dbAnomalie.severite === 'elevee' ? 8 : dbAnomalie.severite === 'moyenne' ? 5 : 2,
-  bonId: dbAnomalie.bon_id || undefined,
-  chauffeurId: dbAnomalie.chauffeur_id || undefined,
-  vehiculeId: dbAnomalie.vehicule_id || undefined,
-  details: dbAnomalie.notes || '',
+  bonId: dbAnomalie.bon_id || '',
+  type: (dbAnomalie.type === 'consommation_elevee' ? 'montant_incoherent' : 
+        dbAnomalie.type === 'distance_incoherente' ? 'distance_incoherente' : 
+        'km_invalide') as 'km_invalide' | 'recul_kilometrique' | 'distance_incoherente' | 'montant_incoherent' | 'bon_incomplet' | 'doublon_numero' | 'frequence_anormale',
+  gravite: dbAnomalie.severite as 'faible' | 'moyenne' | 'elevee' | 'critique',
+  scoreRisque: dbAnomalie.severite === 'elevee' ? 80 : dbAnomalie.severite === 'moyenne' ? 50 : 20,
+  details: dbAnomalie.description || '',
+  statut: (dbAnomalie.statut === 'resolue' ? 'justifiee' : 
+           dbAnomalie.statut === 'a_verifier' ? 'a_verifier' : 
+           'en_cours') as 'a_verifier' | 'en_cours' | 'justifiee' | 'fraude',
+  commentaires: dbAnomalie.notes || undefined,
   createdAt: dbAnomalie.created_at,
   updatedAt: dbAnomalie.updated_at
 });
@@ -342,7 +343,7 @@ export const useSupabaseData = () => {
           adresse: newChauffeur.adresse,
           date_naissance: newChauffeur.dateNaissance,
           date_embauche: newChauffeur.dateEmbauche,
-          salaire_base: newChauffeur.salaireBase,
+          salaire_base: newChauffeur.salaire || 0,
           statut: newChauffeur.statut
         }]);
 
@@ -372,7 +373,7 @@ export const useSupabaseData = () => {
           adresse: updates.adresse,
           date_naissance: updates.dateNaissance,
           date_embauche: updates.dateEmbauche,
-          salaire_base: updates.salaireBase,
+          salaire_base: updates.salaire,
           statut: updates.statut,
           updated_at: new Date().toISOString()
         })
@@ -435,9 +436,9 @@ export const useSupabaseData = () => {
           type_carburant: newVehicule.typeCarburant,
           capacite_reservoir: newVehicule.capaciteReservoir,
           kilometrage: newVehicule.kilometrage,
-          date_mise_en_service: newVehicule.dateMiseEnService,
-          cout_acquisition: newVehicule.coutAcquisition,
-          cout_maintenance_annuel: newVehicule.coutMaintenanceAnnuel,
+          date_mise_en_service: newVehicule.dateAchat || new Date().toISOString().split('T')[0],
+          cout_acquisition: newVehicule.prixAchat || 0,
+          cout_maintenance_annuel: 0,
           statut: newVehicule.statut
         }]);
 
@@ -467,9 +468,8 @@ export const useSupabaseData = () => {
           type_carburant: updates.typeCarburant,
           capacite_reservoir: updates.capaciteReservoir,
           kilometrage: updates.kilometrage,
-          date_mise_en_service: updates.dateMiseEnService,
-          cout_acquisition: updates.coutAcquisition,
-          cout_maintenance_annuel: updates.coutMaintenanceAnnuel,
+          date_mise_en_service: updates.dateAchat,
+          cout_acquisition: updates.prixAchat,
           statut: updates.statut,
           updated_at: new Date().toISOString()
         })
@@ -517,7 +517,7 @@ export const useSupabaseData = () => {
         .from('anomalies')
         .update({
           type: updates.type,
-          description: updates.description,
+          description: updates.details || '',
           severite: updates.gravite,
           statut: updates.statut,
           notes: updates.details,
@@ -564,7 +564,7 @@ export const useSupabaseData = () => {
             adresse: chauffeur.adresse,
             date_naissance: chauffeur.dateNaissance,
             date_embauche: chauffeur.dateEmbauche,
-            salaire_base: chauffeur.salaireBase,
+            salaire_base: chauffeur.salaire || 0,
             statut: chauffeur.statut,
             created_at: chauffeur.createdAt,
             updated_at: chauffeur.updatedAt
@@ -589,9 +589,8 @@ export const useSupabaseData = () => {
             type_carburant: vehicule.typeCarburant,
             capacite_reservoir: vehicule.capaciteReservoir,
             kilometrage: vehicule.kilometrage,
-            date_mise_en_service: vehicule.dateMiseEnService,
-            cout_acquisition: vehicule.coutAcquisition,
-            cout_maintenance_annuel: vehicule.coutMaintenanceAnnuel,
+            date_mise_en_service: vehicule.dateAchat || new Date().toISOString().split('T')[0],
+            cout_acquisition: vehicule.prixAchat || 0,
             statut: vehicule.statut,
             created_at: vehicule.createdAt,
             updated_at: vehicule.updatedAt
@@ -633,12 +632,10 @@ export const useSupabaseData = () => {
           .upsert({
             id: anomalie.id,
             type: anomalie.type,
-            description: anomalie.description,
+            description: anomalie.details || '',
             severite: anomalie.gravite,
             statut: anomalie.statut,
             bon_id: anomalie.bonId,
-            chauffeur_id: anomalie.chauffeurId,
-            vehicule_id: anomalie.vehiculeId,
             notes: anomalie.details,
             created_at: anomalie.createdAt,
             updated_at: anomalie.updatedAt
