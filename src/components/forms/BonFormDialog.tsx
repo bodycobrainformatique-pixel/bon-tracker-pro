@@ -96,7 +96,7 @@ export const BonFormDialog = ({
     
     // Validation basique
     if (!formData.numero || !formData.chauffeurId || !formData.vehiculeId || formData.montant <= 0) {
-      alert('Veuillez remplir tous les champs obligatoires');
+      alert('Veuillez remplir tous les champs obligatoires (numéro, chauffeur, véhicule, montant)');
       return;
     }
 
@@ -208,23 +208,6 @@ export const BonFormDialog = ({
                       {vehicule.immatriculation} - {vehicule.marque} {vehicule.modele}
                     </SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="status">Statut</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value: BonStatus) => handleInputChange('status', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Brouillon</SelectItem>
-                  <SelectItem value="completed">Terminé</SelectItem>
-                  <SelectItem value="validated">Validé</SelectItem>
                 </SelectContent>
               </Select>
             </div>
