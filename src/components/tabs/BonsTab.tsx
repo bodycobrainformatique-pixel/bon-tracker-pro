@@ -170,21 +170,6 @@ export const BonsTab = ({
               </SelectContent>
             </Select>
 
-            <Select
-              value={filters.status || 'all'}
-              onValueChange={(value) => onFiltersChange({ ...filters, status: value === 'all' ? undefined : value as any })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Statut" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous statuts</SelectItem>
-                <SelectItem value="draft">Brouillon</SelectItem>
-                <SelectItem value="completed">Terminé</SelectItem>
-                <SelectItem value="validated">Validé</SelectItem>
-              </SelectContent>
-            </Select>
-
             <Button 
               variant="outline" 
               onClick={() => onFiltersChange({})}
