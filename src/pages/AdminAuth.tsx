@@ -164,11 +164,6 @@ export default function AdminAuth() {
             </div>
           </form>
           
-          <div className="text-center text-sm text-muted-foreground">
-            <p>Identifiants par défaut :</p>
-            <p className="font-mono">Email: admin@tracabilite.tn</p>
-            <p className="font-mono">Mot de passe: admin123</p>
-          </div>
         </CardContent>
       </Card>
     </div>
