@@ -274,7 +274,8 @@ export const useSupabaseData = () => {
         throw error;
       }
 
-      // Refresh all bons data since the trigger may have updated other bons
+      // Small delay to ensure trigger execution, then refresh all bons data
+      await new Promise(resolve => setTimeout(resolve, 100));
       await reloadBonsData();
       
       // Détection d'anomalies

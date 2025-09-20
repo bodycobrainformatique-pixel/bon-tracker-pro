@@ -97,6 +97,11 @@ export const BonFormDialog = ({
       return;
     }
 
+    if (!formData.kmInitial) {
+      alert('Le kilométrage initial est obligatoire');
+      return;
+    }
+
     // Remove km_final and distance from form data - managed by database trigger
     const { kmFinal, distance, ...submitData } = formData;
     onSubmit(submitData);
@@ -217,7 +222,7 @@ export const BonFormDialog = ({
               <h3 className="font-medium mb-3">Kilométrage</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="kmInitial">Km initial</Label>
+                  <Label htmlFor="kmInitial">Km initial *</Label>
                   <Input
                     id="kmInitial"
                     type="number"
