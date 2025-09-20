@@ -101,7 +101,8 @@ const mapDbVehiculeToVehicule = (dbVehicule: DbVehicule): Vehicule => ({
   modele: dbVehicule.modele,
   annee: dbVehicule.annee,
   couleur: dbVehicule.couleur,
-  typeCarburant: dbVehicule.type_carburant as 'gasoil' | 'essence' | 'hybride' | 'electrique',
+  typeCarburant: (dbVehicule.type_carburant === 'gasoil_50' ? 'gasoil_50' : 
+                 dbVehicule.type_carburant === 'essence' ? 'essence' : 'gasoil') as 'gasoil' | 'essence' | 'gasoil_50',
   capaciteReservoir: Number(dbVehicule.capacite_reservoir),
   kilometrage: Number(dbVehicule.kilometrage),
   dateAchat: dbVehicule.date_mise_en_service,
@@ -850,9 +851,9 @@ export const useSupabaseData = () => {
             distance: bon.distance,
             chauffeur_id: bon.chauffeurId,
             vehicule_id: bon.vehiculeId,
-          notes: bon.notes,
-          created_at: bon.createdAt,
-          updated_at: bon.updatedAt
+            notes: bon.notes,
+            created_at: bon.createdAt,
+            updated_at: bon.updatedAt
           });
 
         if (error) {

@@ -11,6 +11,7 @@ import { ChauffeursTab } from './tabs/ChauffeursTab';
 import { VehiculesTab } from './tabs/VehiculesTab';
 import { AnomaliesTab } from './tabs/AnomaliesTab';
 import { RapportsTab } from './tabs/RapportsTab';
+import { ParametresTab } from './tabs/ParametresTab';
 import { StatsBar } from './StatsBar';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
