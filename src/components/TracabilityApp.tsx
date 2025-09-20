@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
-import { BonFilters } from '@/types';
+import { useOptimizedSupabaseData } from '@/hooks/useOptimizedSupabaseData';
+import { BonFilters, Bon, Chauffeur, Vehicule, Anomalie } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { BonsTab } from './tabs/BonsTab';
@@ -32,20 +32,35 @@ export const TracabilityApp = () => {
     anomalies,
     loading,
     createBon,
-    updateBon,
+    updateBon: updateBonBase,
     deleteBon,
     createChauffeur,
-    updateChauffeur,
+    updateChauffeur: updateChauffeurBase,
     deleteChauffeur,
     createVehicule,
-    updateVehicule,
+    updateVehicule: updateVehiculeBase,
     deleteVehicule,
-    updateAnomalie,
+    updateAnomalie: updateAnomalieBase,
     getFilteredBons,
-    getStatistics,
-    syncWithLocalStorage,
-    saveCurrentDataToSupabase
-  } = useSupabaseData();
+    getStatistics
+  } = useOptimizedSupabaseData();
+
+  // Wrapper functions to match expected signatures
+  const updateBon = async (id: string, updates: Partial<Bon>) => {
+    await updateBonBase(id, updates);
+  };
+
+  const updateChauffeur = async (id: string, updates: Partial<Chauffeur>) => {
+    await updateChauffeurBase(id, updates);
+  };
+
+  const updateVehicule = async (id: string, updates: Partial<Vehicule>) => {
+    await updateVehiculeBase(id, updates);
+  };
+
+  const updateAnomalie = async (id: string, updates: Partial<Anomalie>) => {
+    await updateAnomalieBase(id, updates);
+  };
 
   const [activeTab, setActiveTab] = useState('bons');
   const [bonFilters, setBonFilters] = useState<BonFilters>({});
@@ -92,24 +107,12 @@ export const TracabilityApp = () => {
     }
   };
 
+  // Real-time sync - no manual save needed
   const handleSaveToDatabase = async () => {
-    setIsSaving(true);
-    try {
-      const result = await saveCurrentDataToSupabase();
-      toast({
-        title: "Données sauvegardées",
-        description: `${result.savedCount} éléments sauvegardés avec succès dans Supabase`,
-      });
-    } catch (error) {
-      console.error('Erreur de sauvegarde:', error);
-      toast({
-        title: "Erreur de sauvegarde",
-        description: "Une erreur s'est produite lors de la sauvegarde. Vérifiez la console pour plus de détails.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
-    }
+    toast({
+      title: "Synchronisation automatique",
+      description: "Les données sont automatiquement synchronisées en temps réel",
+    });
   };
 
   const filteredBons = getFilteredBons(bonFilters);

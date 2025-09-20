@@ -34,7 +34,7 @@ export const BonFormDialog = ({
   const [formData, setFormData] = useState<Omit<Bon, 'id' | 'createdAt' | 'updatedAt'>>({
     numero: '',
     date: new Date().toISOString().split('T')[0],
-    type: 'gasoil',
+    type: 'gasoil50' as BonType, // Default to most common type
     montant: 0,
     chauffeurId: '',
     vehiculeId: '',
@@ -63,7 +63,7 @@ export const BonFormDialog = ({
       setFormData({
         numero: `BON${Date.now().toString().slice(-6)}`,
         date: new Date().toISOString().split('T')[0],
-        type: 'gasoil',
+        type: 'gasoil50' as BonType, // Will be auto-updated when vehicle is selected
         montant: 0,
         chauffeurId: '',
         vehiculeId: '',
@@ -80,13 +80,10 @@ export const BonFormDialog = ({
     if (formData.vehiculeId && !bon) {
       const selectedVehicle = vehicules.find(v => v.id === formData.vehiculeId);
       if (selectedVehicle) {
-        // Auto-set fuel type from vehicle
-        const vehicleFuelType = selectedVehicle.typeCarburant === 'gasoil' ? 'gasoil' : 
-                               selectedVehicle.typeCarburant === 'essence' ? 'essence' : 'gasoil50';
-        
+      // Auto-set fuel type from vehicle (direct mapping)
         setFormData(prev => ({ 
           ...prev, 
-          type: vehicleFuelType
+          type: selectedVehicle.typeCarburant as BonType
         }));
       }
     }
@@ -195,7 +192,7 @@ export const BonFormDialog = ({
                 <SelectContent>
                   <SelectItem value="gasoil">Gasoil</SelectItem>
                   <SelectItem value="essence">Essence</SelectItem>
-                  <SelectItem value="gasoil_50">Gasoil 50</SelectItem>
+                  <SelectItem value="gasoil50">Gasoil 50</SelectItem>
                 </SelectContent>
               </Select>
             </div>

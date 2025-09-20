@@ -191,13 +191,11 @@ export type Database = {
           cin: string
           created_at: string
           date_embauche: string
-          date_naissance: string
           email: string | null
           id: string
           nom: string
           notes: string | null
           prenom: string
-          salaire_base: number
           statut: string
           telephone: string
           updated_at: string
@@ -207,13 +205,11 @@ export type Database = {
           cin: string
           created_at?: string
           date_embauche: string
-          date_naissance: string
           email?: string | null
           id?: string
           nom: string
           notes?: string | null
           prenom: string
-          salaire_base: number
           statut?: string
           telephone: string
           updated_at?: string
@@ -223,13 +219,11 @@ export type Database = {
           cin?: string
           created_at?: string
           date_embauche?: string
-          date_naissance?: string
           email?: string | null
           id?: string
           nom?: string
           notes?: string | null
           prenom?: string
-          salaire_base?: number
           statut?: string
           telephone?: string
           updated_at?: string
