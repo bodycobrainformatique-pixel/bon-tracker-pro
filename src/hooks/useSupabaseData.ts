@@ -34,7 +34,6 @@ interface DbVehicule {
   couleur: string;
   type_carburant: string;
   capacite_reservoir: number;
-  kilometrage: number;
   date_mise_en_service: string;
   cout_acquisition: number;
   cout_maintenance_annuel: number | null;
@@ -104,7 +103,7 @@ const mapDbVehiculeToVehicule = (dbVehicule: DbVehicule): Vehicule => ({
   typeCarburant: (dbVehicule.type_carburant === 'gasoil_50' ? 'gasoil_50' : 
                  dbVehicule.type_carburant === 'essence' ? 'essence' : 'gasoil') as 'gasoil' | 'essence' | 'gasoil_50',
   capaciteReservoir: Number(dbVehicule.capacite_reservoir),
-  kilometrage: Number(dbVehicule.kilometrage),
+  kilometrage: 0, // Auto-computed from bons
   dateAchat: dbVehicule.date_mise_en_service,
   prixAchat: Number(dbVehicule.cout_acquisition),
   numeroSerie: dbVehicule.notes || '',
@@ -535,15 +534,14 @@ export const useSupabaseData = () => {
         .from('vehicules')
         .insert([{
           immatriculation: vehiculeData.immatriculation,
-          marque: vehiculeData.marque,
-          modele: vehiculeData.modele,
-          annee: vehiculeData.annee || new Date().getFullYear(),
+          marque: vehiculeData.marque || '',
+          modele: vehiculeData.modele || '',
+          annee: vehiculeData.annee || null,
           couleur: vehiculeData.couleur || '',
           type_carburant: vehiculeData.typeCarburant || 'gasoil',
-          capacite_reservoir: vehiculeData.capaciteReservoir || 50,
-          kilometrage: vehiculeData.kilometrage || 0,
+          capacite_reservoir: vehiculeData.capaciteReservoir || null,
           date_mise_en_service: vehiculeData.dateAchat || new Date().toISOString().split('T')[0],
-          cout_acquisition: vehiculeData.prixAchat || 0,
+          cout_acquisition: vehiculeData.prixAchat || null,
           cout_maintenance_annuel: 0,
           statut: vehiculeData.statut === 'actif' ? 'en_service' : 'hors_service',
           notes: vehiculeData.numeroSerie || null
@@ -577,7 +575,6 @@ export const useSupabaseData = () => {
           couleur: updates.couleur,
           type_carburant: updates.typeCarburant,
           capacite_reservoir: updates.capaciteReservoir,
-          kilometrage: updates.kilometrage,
           date_mise_en_service: updates.dateAchat,
           cout_acquisition: updates.prixAchat,
           statut: updates.statut === 'actif' ? 'en_service' : 'hors_service',
