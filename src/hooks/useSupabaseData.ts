@@ -1,0 +1,771 @@
+// Hook pour la gestion des données avec Supabase
+
+import { useState, useEffect } from 'react';
+import { Bon, Chauffeur, Vehicule, Anomalie, BonFilters, Statistics } from '@/types';
+import { StorageService, KEYS } from '@/lib/storage';
+import { supabase } from '@/integrations/supabase/client';
+import { detectAnomalies } from '@/lib/anomaliesDetection';
+import { seedBons, seedChauffeurs, seedVehicules, seedAnomalies } from '@/lib/seedData';
+
+// Types pour les données de la base Supabase
+interface DbChauffeur {
+  id: string;
+  nom: string;
+  prenom: string;
+  cin: string;
+  telephone: string;
+  email: string | null;
+  adresse: string;
+  date_naissance: string;
+  date_embauche: string;
+  salaire_base: number;
+  statut: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DbVehicule {
+  id: string;
+  immatriculation: string;
+  marque: string;
+  modele: string;
+  annee: number;
+  couleur: string;
+  type_carburant: string;
+  capacite_reservoir: number;
+  kilometrage: number;
+  date_mise_en_service: string;
+  cout_acquisition: number;
+  cout_maintenance_annuel: number | null;
+  statut: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DbBon {
+  id: string;
+  numero: string;
+  date: string;
+  type: string;
+  montant: number;
+  distance: number | null;
+  chauffeur_id: string;
+  vehicule_id: string;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DbAnomalie {
+  id: string;
+  type: string;
+  description: string;
+  severite: string;
+  statut: string;
+  bon_id: string | null;
+  chauffeur_id: string | null;
+  vehicule_id: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Fonctions de mapping
+const mapDbChauffeurToChauffeur = (dbChauffeur: DbChauffeur): Chauffeur => ({
+  id: dbChauffeur.id,
+  nom: dbChauffeur.nom,
+  prenom: dbChauffeur.prenom,
+  matricule: dbChauffeur.cin,
+  telephone: dbChauffeur.telephone,
+  email: dbChauffeur.email || '',
+  adresse: dbChauffeur.adresse,
+  dateNaissance: dbChauffeur.date_naissance,
+  cinNumber: dbChauffeur.cin,
+  dateEmbauche: dbChauffeur.date_embauche,
+  salaire: Number(dbChauffeur.salaire_base),
+  statut: dbChauffeur.statut as 'actif' | 'inactif',
+  createdAt: dbChauffeur.created_at,
+  updatedAt: dbChauffeur.updated_at
+});
+
+const mapDbVehiculeToVehicule = (dbVehicule: DbVehicule): Vehicule => ({
+  id: dbVehicule.id,
+  immatriculation: dbVehicule.immatriculation,
+  marque: dbVehicule.marque,
+  modele: dbVehicule.modele,
+  annee: dbVehicule.annee,
+  couleur: dbVehicule.couleur,
+  typeCarburant: dbVehicule.type_carburant as 'gasoil' | 'essence',
+  capaciteReservoir: Number(dbVehicule.capacite_reservoir),
+  kilometrage: Number(dbVehicule.kilometrage),
+  dateMiseEnService: dbVehicule.date_mise_en_service,
+  coutAcquisition: Number(dbVehicule.cout_acquisition),
+  coutMaintenanceAnnuel: Number(dbVehicule.cout_maintenance_annuel || 0),
+  statut: dbVehicule.statut as 'en_service' | 'en_panne' | 'en_maintenance' | 'hors_service',
+  createdAt: dbVehicule.created_at,
+  updatedAt: dbVehicule.updated_at
+});
+
+const mapDbBonToBon = (dbBon: DbBon): Bon => ({
+  id: dbBon.id,
+  numero: dbBon.numero,
+  date: dbBon.date,
+  type: dbBon.type as 'gasoil' | 'especes',
+  montant: Number(dbBon.montant),
+  distance: dbBon.distance ? Number(dbBon.distance) : undefined,
+  chauffeurId: dbBon.chauffeur_id,
+  vehiculeId: dbBon.vehicule_id,
+  status: dbBon.status as 'en_cours' | 'valide' | 'annule',
+  notes: dbBon.notes || undefined,
+  createdAt: dbBon.created_at,
+  updatedAt: dbBon.updated_at
+});
+
+const mapDbAnomalieToAnomalie = (dbAnomalie: DbAnomalie): Anomalie => ({
+  id: dbAnomalie.id,
+  type: dbAnomalie.type as 'consommation_elevee' | 'distance_incoherente' | 'duree_anormale' | 'montant_suspect' | 'frequence_elevee',
+  titre: dbAnomalie.type.replace(/_/g, ' ').toUpperCase(),
+  description: dbAnomalie.description,
+  gravite: dbAnomalie.severite as 'faible' | 'moyenne' | 'elevee',
+  statut: dbAnomalie.statut as 'a_verifier' | 'resolue' | 'ignoree',
+  scoreRisque: dbAnomalie.severite === 'elevee' ? 8 : dbAnomalie.severite === 'moyenne' ? 5 : 2,
+  bonId: dbAnomalie.bon_id || undefined,
+  chauffeurId: dbAnomalie.chauffeur_id || undefined,
+  vehiculeId: dbAnomalie.vehicule_id || undefined,
+  details: dbAnomalie.notes || '',
+  createdAt: dbAnomalie.created_at,
+  updatedAt: dbAnomalie.updated_at
+});
+
+export const useSupabaseData = () => {
+  const [bons, setBons] = useState<Bon[]>([]);
+  const [chauffeurs, setChauffeurs] = useState<Chauffeur[]>([]);
+  const [vehicules, setVehicules] = useState<Vehicule[]>([]);
+  const [anomalies, setAnomalies] = useState<Anomalie[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Initialisation des données depuis Supabase
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Charger les chauffeurs
+        const { data: chauffeursData, error: chauffeursError } = await supabase
+          .from('chauffeurs')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (chauffeursError) {
+          console.error('Erreur lors du chargement des chauffeurs:', chauffeursError);
+          setChauffeurs(StorageService.get<Chauffeur[]>(KEYS.CHAUFFEURS, seedChauffeurs));
+        } else {
+          const mappedChauffeurs = (chauffeursData as DbChauffeur[]).map(mapDbChauffeurToChauffeur);
+          setChauffeurs(mappedChauffeurs);
+        }
+
+        // Charger les véhicules
+        const { data: vehiculesData, error: vehiculesError } = await supabase
+          .from('vehicules')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (vehiculesError) {
+          console.error('Erreur lors du chargement des véhicules:', vehiculesError);
+          setVehicules(StorageService.get<Vehicule[]>(KEYS.VEHICULES, seedVehicules));
+        } else {
+          const mappedVehicules = (vehiculesData as DbVehicule[]).map(mapDbVehiculeToVehicule);
+          setVehicules(mappedVehicules);
+        }
+
+        // Charger les bons
+        const { data: bonsData, error: bonsError } = await supabase
+          .from('bons')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (bonsError) {
+          console.error('Erreur lors du chargement des bons:', bonsError);
+          setBons(StorageService.get<Bon[]>(KEYS.BONS, seedBons));
+        } else {
+          const mappedBons = (bonsData as DbBon[]).map(mapDbBonToBon);
+          setBons(mappedBons);
+        }
+
+        // Charger les anomalies
+        const { data: anomaliesData, error: anomaliesError } = await supabase
+          .from('anomalies')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (anomaliesError) {
+          console.error('Erreur lors du chargement des anomalies:', anomaliesError);
+          setAnomalies(StorageService.get<Anomalie[]>(KEYS.ANOMALIES, seedAnomalies));
+        } else {
+          const mappedAnomalies = (anomaliesData as DbAnomalie[]).map(mapDbAnomalieToAnomalie);
+          setAnomalies(mappedAnomalies);
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des données:', error);
+        // Fallback sur localStorage
+        setBons(StorageService.get<Bon[]>(KEYS.BONS, seedBons));
+        setChauffeurs(StorageService.get<Chauffeur[]>(KEYS.CHAUFFEURS, seedChauffeurs));
+        setVehicules(StorageService.get<Vehicule[]>(KEYS.VEHICULES, seedVehicules));
+        setAnomalies(StorageService.get<Anomalie[]>(KEYS.ANOMALIES, seedAnomalies));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Fonctions CRUD pour les bons
+  const createBon = async (bonData: Omit<Bon, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newBon: Bon = {
+      ...bonData,
+      id: Math.random().toString(36).substr(2, 9),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      const { error } = await supabase
+        .from('bons')
+        .insert([{
+          id: newBon.id,
+          numero: newBon.numero,
+          date: newBon.date,
+          type: newBon.type,
+          montant: newBon.montant,
+          distance: newBon.distance,
+          chauffeur_id: newBon.chauffeurId,
+          vehicule_id: newBon.vehiculeId,
+          status: newBon.status,
+          notes: newBon.notes
+        }]);
+
+      if (error) {
+        console.error('Erreur lors de la création du bon:', error);
+        throw error;
+      }
+
+      setBons(prev => [newBon, ...prev]);
+      
+      // Détection d'anomalies
+      const newAnomalies = detectAnomalies(newBon, bons, chauffeurs, vehicules);
+      if (newAnomalies.length > 0) {
+        setAnomalies(prev => [...newAnomalies, ...prev]);
+      }
+
+      return newBon;
+    } catch (error) {
+      console.error('Erreur lors de la création du bon:', error);
+      throw error;
+    }
+  };
+
+  const updateBon = async (id: string, updates: Partial<Bon>) => {
+    try {
+      const { error } = await supabase
+        .from('bons')
+        .update({
+          numero: updates.numero,
+          date: updates.date,
+          type: updates.type,
+          montant: updates.montant,
+          distance: updates.distance,
+          chauffeur_id: updates.chauffeurId,
+          vehicule_id: updates.vehiculeId,
+          status: updates.status,
+          notes: updates.notes,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Erreur lors de la mise à jour du bon:', error);
+        throw error;
+      }
+
+      setBons(prev => prev.map(bon => 
+        bon.id === id 
+          ? { ...bon, ...updates, updatedAt: new Date().toISOString() }
+          : bon
+      ));
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du bon:', error);
+      throw error;
+    }
+  };
+
+  const deleteBon = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('bons')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Erreur lors de la suppression du bon:', error);
+        throw error;
+      }
+
+      setBons(prev => prev.filter(bon => bon.id !== id));
+      setAnomalies(prev => prev.filter(anomalie => anomalie.bonId !== id));
+    } catch (error) {
+      console.error('Erreur lors de la suppression du bon:', error);
+      throw error;
+    }
+  };
+
+  // Fonctions CRUD pour les chauffeurs
+  const createChauffeur = async (chauffeurData: Omit<Chauffeur, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newChauffeur: Chauffeur = {
+      ...chauffeurData,
+      id: Math.random().toString(36).substr(2, 9),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      const { error } = await supabase
+        .from('chauffeurs')
+        .insert([{
+          id: newChauffeur.id,
+          nom: newChauffeur.nom,
+          prenom: newChauffeur.prenom,
+          cin: newChauffeur.matricule,
+          telephone: newChauffeur.telephone,
+          email: newChauffeur.email,
+          adresse: newChauffeur.adresse,
+          date_naissance: newChauffeur.dateNaissance,
+          date_embauche: newChauffeur.dateEmbauche,
+          salaire_base: newChauffeur.salaireBase,
+          statut: newChauffeur.statut
+        }]);
+
+      if (error) {
+        console.error('Erreur lors de la création du chauffeur:', error);
+        throw error;
+      }
+
+      setChauffeurs(prev => [newChauffeur, ...prev]);
+      return newChauffeur;
+    } catch (error) {
+      console.error('Erreur lors de la création du chauffeur:', error);
+      throw error;
+    }
+  };
+
+  const updateChauffeur = async (id: string, updates: Partial<Chauffeur>) => {
+    try {
+      const { error } = await supabase
+        .from('chauffeurs')
+        .update({
+          nom: updates.nom,
+          prenom: updates.prenom,
+          cin: updates.matricule,
+          telephone: updates.telephone,
+          email: updates.email,
+          adresse: updates.adresse,
+          date_naissance: updates.dateNaissance,
+          date_embauche: updates.dateEmbauche,
+          salaire_base: updates.salaireBase,
+          statut: updates.statut,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Erreur lors de la mise à jour du chauffeur:', error);
+        throw error;
+      }
+
+      setChauffeurs(prev => prev.map(chauffeur => 
+        chauffeur.id === id 
+          ? { ...chauffeur, ...updates, updatedAt: new Date().toISOString() }
+          : chauffeur
+      ));
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du chauffeur:', error);
+      throw error;
+    }
+  };
+
+  const deleteChauffeur = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('chauffeurs')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Erreur lors de la suppression du chauffeur:', error);
+        throw error;
+      }
+
+      setChauffeurs(prev => prev.filter(chauffeur => chauffeur.id !== id));
+    } catch (error) {
+      console.error('Erreur lors de la suppression du chauffeur:', error);
+      throw error;
+    }
+  };
+
+  // Fonctions CRUD pour les véhicules
+  const createVehicule = async (vehiculeData: Omit<Vehicule, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newVehicule: Vehicule = {
+      ...vehiculeData,
+      id: Math.random().toString(36).substr(2, 9),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      const { error } = await supabase
+        .from('vehicules')
+        .insert([{
+          id: newVehicule.id,
+          immatriculation: newVehicule.immatriculation,
+          marque: newVehicule.marque,
+          modele: newVehicule.modele,
+          annee: newVehicule.annee,
+          couleur: newVehicule.couleur,
+          type_carburant: newVehicule.typeCarburant,
+          capacite_reservoir: newVehicule.capaciteReservoir,
+          kilometrage: newVehicule.kilometrage,
+          date_mise_en_service: newVehicule.dateMiseEnService,
+          cout_acquisition: newVehicule.coutAcquisition,
+          cout_maintenance_annuel: newVehicule.coutMaintenanceAnnuel,
+          statut: newVehicule.statut
+        }]);
+
+      if (error) {
+        console.error('Erreur lors de la création du véhicule:', error);
+        throw error;
+      }
+
+      setVehicules(prev => [newVehicule, ...prev]);
+      return newVehicule;
+    } catch (error) {
+      console.error('Erreur lors de la création du véhicule:', error);
+      throw error;
+    }
+  };
+
+  const updateVehicule = async (id: string, updates: Partial<Vehicule>) => {
+    try {
+      const { error } = await supabase
+        .from('vehicules')
+        .update({
+          immatriculation: updates.immatriculation,
+          marque: updates.marque,
+          modele: updates.modele,
+          annee: updates.annee,
+          couleur: updates.couleur,
+          type_carburant: updates.typeCarburant,
+          capacite_reservoir: updates.capaciteReservoir,
+          kilometrage: updates.kilometrage,
+          date_mise_en_service: updates.dateMiseEnService,
+          cout_acquisition: updates.coutAcquisition,
+          cout_maintenance_annuel: updates.coutMaintenanceAnnuel,
+          statut: updates.statut,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Erreur lors de la mise à jour du véhicule:', error);
+        throw error;
+      }
+
+      setVehicules(prev => prev.map(vehicule => 
+        vehicule.id === id 
+          ? { ...vehicule, ...updates, updatedAt: new Date().toISOString() }
+          : vehicule
+      ));
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du véhicule:', error);
+      throw error;
+    }
+  };
+
+  const deleteVehicule = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('vehicules')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Erreur lors de la suppression du véhicule:', error);
+        throw error;
+      }
+
+      setVehicules(prev => prev.filter(vehicule => vehicule.id !== id));
+    } catch (error) {
+      console.error('Erreur lors de la suppression du véhicule:', error);
+      throw error;
+    }
+  };
+
+  // Fonctions pour les anomalies
+  const updateAnomalie = async (id: string, updates: Partial<Anomalie>) => {
+    try {
+      const { error } = await supabase
+        .from('anomalies')
+        .update({
+          type: updates.type,
+          description: updates.description,
+          severite: updates.gravite,
+          statut: updates.statut,
+          notes: updates.details,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Erreur lors de la mise à jour de l\'anomalie:', error);
+        throw error;
+      }
+
+      setAnomalies(prev => prev.map(anomalie => 
+        anomalie.id === id 
+          ? { ...anomalie, ...updates, updatedAt: new Date().toISOString() }
+          : anomalie
+      ));
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de l\'anomalie:', error);
+      throw error;
+    }
+  };
+
+  // Fonction pour synchroniser avec localStorage
+  const syncWithLocalStorage = async () => {
+    try {
+      // Récupérer les données de localStorage
+      const localBons = StorageService.get<Bon[]>(KEYS.BONS, []);
+      const localChauffeurs = StorageService.get<Chauffeur[]>(KEYS.CHAUFFEURS, []);
+      const localVehicules = StorageService.get<Vehicule[]>(KEYS.VEHICULES, []);
+      const localAnomalies = StorageService.get<Anomalie[]>(KEYS.ANOMALIES, []);
+
+      // Synchroniser les chauffeurs
+      for (const chauffeur of localChauffeurs) {
+        const { error } = await supabase
+          .from('chauffeurs')
+          .upsert({
+            id: chauffeur.id,
+            nom: chauffeur.nom,
+            prenom: chauffeur.prenom,
+            cin: chauffeur.matricule,
+            telephone: chauffeur.telephone,
+            email: chauffeur.email,
+            adresse: chauffeur.adresse,
+            date_naissance: chauffeur.dateNaissance,
+            date_embauche: chauffeur.dateEmbauche,
+            salaire_base: chauffeur.salaireBase,
+            statut: chauffeur.statut,
+            created_at: chauffeur.createdAt,
+            updated_at: chauffeur.updatedAt
+          });
+
+        if (error) {
+          console.error('Erreur lors de la synchronisation du chauffeur:', chauffeur.id, error);
+        }
+      }
+
+      // Synchroniser les véhicules
+      for (const vehicule of localVehicules) {
+        const { error } = await supabase
+          .from('vehicules')
+          .upsert({
+            id: vehicule.id,
+            immatriculation: vehicule.immatriculation,
+            marque: vehicule.marque,
+            modele: vehicule.modele,
+            annee: vehicule.annee,
+            couleur: vehicule.couleur,
+            type_carburant: vehicule.typeCarburant,
+            capacite_reservoir: vehicule.capaciteReservoir,
+            kilometrage: vehicule.kilometrage,
+            date_mise_en_service: vehicule.dateMiseEnService,
+            cout_acquisition: vehicule.coutAcquisition,
+            cout_maintenance_annuel: vehicule.coutMaintenanceAnnuel,
+            statut: vehicule.statut,
+            created_at: vehicule.createdAt,
+            updated_at: vehicule.updatedAt
+          });
+
+        if (error) {
+          console.error('Erreur lors de la synchronisation du véhicule:', vehicule.id, error);
+        }
+      }
+
+      // Synchroniser les bons
+      for (const bon of localBons) {
+        const { error } = await supabase
+          .from('bons')
+          .upsert({
+            id: bon.id,
+            numero: bon.numero,
+            date: bon.date,
+            type: bon.type,
+            montant: bon.montant,
+            distance: bon.distance,
+            chauffeur_id: bon.chauffeurId,
+            vehicule_id: bon.vehiculeId,
+            status: bon.status,
+            notes: bon.notes,
+            created_at: bon.createdAt,
+            updated_at: bon.updatedAt
+          });
+
+        if (error) {
+          console.error('Erreur lors de la synchronisation du bon:', bon.id, error);
+        }
+      }
+
+      // Synchroniser les anomalies
+      for (const anomalie of localAnomalies) {
+        const { error } = await supabase
+          .from('anomalies')
+          .upsert({
+            id: anomalie.id,
+            type: anomalie.type,
+            description: anomalie.description,
+            severite: anomalie.gravite,
+            statut: anomalie.statut,
+            bon_id: anomalie.bonId,
+            chauffeur_id: anomalie.chauffeurId,
+            vehicule_id: anomalie.vehiculeId,
+            notes: anomalie.details,
+            created_at: anomalie.createdAt,
+            updated_at: anomalie.updatedAt
+          });
+
+        if (error) {
+          console.error('Erreur lors de la synchronisation de l\'anomalie:', anomalie.id, error);
+        }
+      }
+
+      // Recharger les données depuis la base
+      const { data: chauffeursData } = await supabase
+        .from('chauffeurs')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      const { data: vehiculesData } = await supabase
+        .from('vehicules')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      const { data: bonsData } = await supabase
+        .from('bons')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      const { data: anomaliesData } = await supabase
+        .from('anomalies')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (chauffeursData) {
+        const mappedChauffeurs = (chauffeursData as DbChauffeur[]).map(mapDbChauffeurToChauffeur);
+        setChauffeurs(mappedChauffeurs);
+      }
+      if (vehiculesData) {
+        const mappedVehicules = (vehiculesData as DbVehicule[]).map(mapDbVehiculeToVehicule);
+        setVehicules(mappedVehicules);
+      }
+      if (bonsData) {
+        const mappedBons = (bonsData as DbBon[]).map(mapDbBonToBon);
+        setBons(mappedBons);
+      }
+      if (anomaliesData) {
+        const mappedAnomalies = (anomaliesData as DbAnomalie[]).map(mapDbAnomalieToAnomalie);
+        setAnomalies(mappedAnomalies);
+      }
+
+    } catch (error) {
+      console.error('Erreur lors de la synchronisation:', error);
+      throw error;
+    }
+  };
+
+  // Filtres et statistiques
+  const getFilteredBons = (filters: BonFilters): Bon[] => {
+    return bons.filter(bon => {
+      if (filters.dateFrom && bon.date < filters.dateFrom) return false;
+      if (filters.dateTo && bon.date > filters.dateTo) return false;
+      if (filters.type && bon.type !== filters.type) return false;
+      if (filters.chauffeurId && bon.chauffeurId !== filters.chauffeurId) return false;
+      if (filters.vehiculeId && bon.vehiculeId !== filters.vehiculeId) return false;
+      if (filters.status && bon.status !== filters.status) return false;
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        const chauffeur = chauffeurs.find(c => c.id === bon.chauffeurId);
+        const vehicule = vehicules.find(v => v.id === bon.vehiculeId);
+        const searchText = [
+          bon.numero,
+          chauffeur ? `${chauffeur.nom} ${chauffeur.prenom}` : '',
+          vehicule ? vehicule.immatriculation : '',
+          bon.notes || ''
+        ].join(' ').toLowerCase();
+        
+        if (!searchText.includes(searchLower)) return false;
+      }
+      return true;
+    });
+  };
+
+  const getStatistics = (filteredBons: Bon[]): Statistics => {
+    return filteredBons.reduce((stats, bon) => ({
+      totalMontant: stats.totalMontant + bon.montant,
+      totalDistance: stats.totalDistance + (bon.distance || 0),
+      totalBons: stats.totalBons + 1,
+      montantGasoil: stats.montantGasoil + (bon.type === 'gasoil' ? bon.montant : 0),
+      montantEspeces: stats.montantEspeces + (bon.type === 'especes' ? bon.montant : 0),
+      anomaliesCount: stats.anomaliesCount
+    }), {
+      totalMontant: 0,
+      totalDistance: 0,
+      totalBons: 0,
+      montantGasoil: 0,
+      montantEspeces: 0,
+      anomaliesCount: anomalies.filter(a => a.statut === 'a_verifier').length
+    });
+  };
+
+  return {
+    // Données
+    bons,
+    chauffeurs,
+    vehicules,
+    anomalies,
+    loading,
+    
+    // Actions bons
+    createBon,
+    updateBon,
+    deleteBon,
+    
+    // Actions chauffeurs
+    createChauffeur,
+    updateChauffeur,
+    deleteChauffeur,
+    
+    // Actions véhicules
+    createVehicule,
+    updateVehicule,
+    deleteVehicule,
+    
+    // Actions anomalies
+    updateAnomalie,
+    
+    // Utilitaires
+    getFilteredBons,
+    getStatistics,
+    syncWithLocalStorage
+  };
+};
