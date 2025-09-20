@@ -47,7 +47,7 @@ interface RapportsTabProps {
   anomalies: Anomalie[];
 }
 
-export const RapportsTab = ({ vehicules, chauffeurs, bons, anomalies }: RapportsTabProps) => {
+export const RapportsTab = ({ vehicules = [], chauffeurs = [], bons = [], anomalies = [] }: RapportsTabProps) => {
   const [reportType, setReportType] = useState<'vehicule' | 'chauffeur'>('vehicule');
   const [selectedVehiculeId, setSelectedVehiculeId] = useState<string>('');
   const [selectedChauffeurId, setSelectedChauffeurId] = useState<string>('');
@@ -59,6 +59,8 @@ export const RapportsTab = ({ vehicules, chauffeurs, bons, anomalies }: Rapports
 
   // Filter bons based on selected criteria and date range
   const getFilteredBons = () => {
+    if (!bons || bons.length === 0) return [];
+    
     let filtered = bons;
 
     // Filter by vehicle or chauffeur
@@ -81,6 +83,18 @@ export const RapportsTab = ({ vehicules, chauffeurs, bons, anomalies }: Rapports
 
   // Calculate vehicle statistics
   const calculateVehiculeStats = (filteredBons: Bon[]): VehiculeReportStats => {
+    if (!filteredBons || filteredBons.length === 0) {
+      return {
+        totalKm: 0,
+        totalMontant: 0,
+        totalBons: 0,
+        avgConsumption: 0,
+        anomaliesCount: 0,
+        fuelTypes: {},
+        monthlyData: []
+      };
+    }
+
     const totalKm = filteredBons.reduce((sum, bon) => sum + (bon.distance || 0), 0);
     const totalMontant = filteredBons.reduce((sum, bon) => sum + bon.montant, 0);
     const totalBons = filteredBons.length;
@@ -89,7 +103,7 @@ export const RapportsTab = ({ vehicules, chauffeurs, bons, anomalies }: Rapports
     const avgConsumption = totalKm > 0 ? (totalMontant / totalKm) * 100 : 0; // TND per 100km as proxy
     
     // Count related anomalies
-    const vehicleAnomalies = anomalies.filter(anomalie => {
+    const vehicleAnomalies = (anomalies || []).filter(anomalie => {
       const bonIds = filteredBons.map(b => b.id);
       return bonIds.includes(anomalie.bonId) && anomalie.statut === 'a_verifier';
     });
@@ -132,6 +146,18 @@ export const RapportsTab = ({ vehicules, chauffeurs, bons, anomalies }: Rapports
 
   // Calculate chauffeur statistics
   const calculateChauffeurStats = (filteredBons: Bon[]): ChauffeurReportStats => {
+    if (!filteredBons || filteredBons.length === 0) {
+      return {
+        totalKm: 0,
+        totalMontant: 0,
+        totalBons: 0,
+        avgKmPerBon: 0,
+        anomaliesCount: 0,
+        vehiclesUsed: 0,
+        monthlyData: []
+      };
+    }
+
     const totalKm = filteredBons.reduce((sum, bon) => sum + (bon.distance || 0), 0);
     const totalMontant = filteredBons.reduce((sum, bon) => sum + bon.montant, 0);
     const totalBons = filteredBons.length;
@@ -142,7 +168,7 @@ export const RapportsTab = ({ vehicules, chauffeurs, bons, anomalies }: Rapports
     const vehiclesUsed = uniqueVehicles.size;
     
     // Count related anomalies
-    const chauffeurAnomalies = anomalies.filter(anomalie => {
+    const chauffeurAnomalies = (anomalies || []).filter(anomalie => {
       const bonIds = filteredBons.map(b => b.id);
       return bonIds.includes(anomalie.bonId) && anomalie.statut === 'a_verifier';
     });
@@ -191,14 +217,14 @@ export const RapportsTab = ({ vehicules, chauffeurs, bons, anomalies }: Rapports
   // Export functionality
   const exportCSV = () => {
     const filteredBons = getFilteredBons();
-    if (filteredBons.length === 0) return;
+    if (!filteredBons || filteredBons.length === 0) return;
 
     const headers = ['Date', 'Numéro', 'Type', 'Montant', 'KM Initial', 'KM Final', 'Distance', 'Véhicule', 'Chauffeur'];
     const csvContent = [
       headers.join(','),
       ...filteredBons.map(bon => {
-        const vehicule = vehicules.find(v => v.id === bon.vehiculeId);
-        const chauffeur = chauffeurs.find(c => c.id === bon.chauffeurId);
+        const vehicule = (vehicules || []).find(v => v.id === bon.vehiculeId);
+        const chauffeur = (chauffeurs || []).find(c => c.id === bon.chauffeurId);
         return [
           bon.date,
           bon.numero,
@@ -264,7 +290,7 @@ export const RapportsTab = ({ vehicules, chauffeurs, bons, anomalies }: Rapports
                       <SelectValue placeholder="Sélectionner un véhicule" />
                     </SelectTrigger>
                     <SelectContent>
-                      {vehicules.map(vehicule => (
+                      {(vehicules || []).map(vehicule => (
                         <SelectItem key={vehicule.id} value={vehicule.id}>
                           {vehicule.immatriculation} - {vehicule.marque} {vehicule.modele}
                         </SelectItem>
@@ -280,7 +306,7 @@ export const RapportsTab = ({ vehicules, chauffeurs, bons, anomalies }: Rapports
                       <SelectValue placeholder="Sélectionner un chauffeur" />
                     </SelectTrigger>
                     <SelectContent>
-                      {chauffeurs.map(chauffeur => (
+                      {(chauffeurs || []).map(chauffeur => (
                         <SelectItem key={chauffeur.id} value={chauffeur.id}>
                           {chauffeur.prenom} {chauffeur.nom} ({chauffeur.matricule})
                         </SelectItem>
@@ -436,7 +462,7 @@ export const RapportsTab = ({ vehicules, chauffeurs, bons, anomalies }: Rapports
                       <ResponsiveContainer width="100%" height={300}>
                         <PieChart>
                           <Pie
-                            data={Object.entries(vehiculeStats.fuelTypes).map(([type, amount]) => ({
+                            data={Object.entries(vehiculeStats?.fuelTypes || {}).map(([type, amount]) => ({
                               name: type,
                               value: amount
                             }))}
@@ -448,7 +474,7 @@ export const RapportsTab = ({ vehicules, chauffeurs, bons, anomalies }: Rapports
                             fill="#8884d8"
                             dataKey="value"
                           >
-                            {Object.entries(vehiculeStats.fuelTypes).map((_, index) => (
+                            {Object.entries(vehiculeStats?.fuelTypes || {}).map((_, index) => (
                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                           </Pie>
@@ -628,7 +654,7 @@ export const RapportsTab = ({ vehicules, chauffeurs, bons, anomalies }: Rapports
                     </CardHeader>
                     <CardContent>
                       <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={chauffeurStats.monthlyData.map(item => ({
+                        <LineChart data={(chauffeurStats?.monthlyData || []).map(item => ({
                           ...item,
                           kmPerBon: item.bons > 0 ? item.km / item.bons : 0
                         }))}>
