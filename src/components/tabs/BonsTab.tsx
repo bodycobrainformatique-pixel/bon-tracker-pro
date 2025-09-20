@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BonFormDialog } from '../forms/BonFormDialog';
 import { Plus, Search, Filter, Download, Upload } from 'lucide-react';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 
 interface BonsTabProps {
   bons: Bon[];
@@ -36,14 +36,24 @@ export const BonsTab = ({
 }: BonsTabProps) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBon, setEditingBon] = useState<Bon | null>(null);
+  const { toast } = useToast();
 
   const handleCreateBon = async (bonData: Omit<Bon, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
+      console.log('📝 Creating bon from BonsTab:', bonData);
       await onCreateBon(bonData);
-      toast.success('Bon créé avec succès');
+      toast({
+        title: "✅ Bon créé",
+        description: "Le bon a été créé avec succès"
+      });
       setIsFormOpen(false);
-    } catch (error) {
-      toast.error('Erreur lors de la création du bon');
+    } catch (error: any) {
+      console.error('❌ Error creating bon in BonsTab:', error);
+      toast({
+        variant: "destructive",
+        title: "❌ Erreur",
+        description: error.message || "Erreur lors de la création du bon"
+      });
     }
   };
 
@@ -52,10 +62,17 @@ export const BonsTab = ({
     
     try {
       await onUpdateBon(editingBon.id, bonData);
-      toast.success('Bon mis à jour avec succès');
+      toast({
+        title: "✅ Bon mis à jour",
+        description: "Le bon a été mis à jour avec succès"
+      });
       setEditingBon(null);
     } catch (error) {
-      toast.error('Erreur lors de la mise à jour du bon');
+      toast({
+        variant: "destructive",
+        title: "❌ Erreur",
+        description: "Erreur lors de la mise à jour du bon"
+      });
     }
   };
 
@@ -63,9 +80,16 @@ export const BonsTab = ({
     if (confirm('Êtes-vous sûr de vouloir supprimer ce bon ?')) {
       try {
         await onDeleteBon(id);
-        toast.success('Bon supprimé avec succès');
+      toast({
+        title: "✅ Bon supprimé",
+        description: "Le bon a été supprimé avec succès"
+      });
       } catch (error) {
-        toast.error('Erreur lors de la suppression du bon');
+      toast({
+        variant: "destructive",
+        title: "❌ Erreur",
+        description: "Erreur lors de la suppression du bon"
+      });
       }
     }
   };

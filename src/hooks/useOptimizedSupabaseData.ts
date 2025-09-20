@@ -144,46 +144,53 @@ export const useOptimizedSupabaseData = () => {
   const [anomalies, setAnomalies] = useState<Anomalie[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Optimized data loading function
-  const loadInitialData = async () => {
-    try {
-      setLoading(true);
+// Optimized data loading function with better error handling
+const loadInitialData = async () => {
+  try {
+    console.log('🔄 Loading initial data...');
+    setLoading(true);
 
-      // Parallel data loading for better performance
-      const [chauffeursResult, vehiculesResult, bonsResult, anomaliesResult] = await Promise.all([
-        supabase.from('chauffeurs').select('*').order('created_at', { ascending: false }),
-        supabase.from('vehicules').select('*').order('created_at', { ascending: false }),
-        supabase.from('bons').select('*').order('date', { ascending: false }),
-        supabase.from('anomalies').select('*').order('created_at', { ascending: false })
-      ]);
+    // Parallel data loading for better performance
+    const [chauffeursResult, vehiculesResult, bonsResult, anomaliesResult] = await Promise.all([
+      supabase.from('chauffeurs').select('*').order('created_at', { ascending: false }),
+      supabase.from('vehicules').select('*').order('created_at', { ascending: false }),
+      supabase.from('bons').select('*').order('date', { ascending: false }),
+      supabase.from('anomalies').select('*').order('created_at', { ascending: false })
+    ]);
 
-      // Process results
-      if (chauffeursResult.data) {
-        const mappedChauffeurs = chauffeursResult.data.map(mapDbChauffeurToChauffeur);
-        setChauffeurs(mappedChauffeurs);
-      }
-
-      if (vehiculesResult.data) {
-        const mappedVehicules = vehiculesResult.data.map(mapDbVehiculeToVehicule);
-        setVehicules(mappedVehicules);
-      }
-
-      if (bonsResult.data) {
-        const mappedBons = bonsResult.data.map(mapDbBonToBon);
-        setBons(mappedBons);
-      }
-
-      if (anomaliesResult.data) {
-        const mappedAnomalies = anomaliesResult.data.map(mapDbAnomalieToAnomalie);
-        setAnomalies(mappedAnomalies);
-      }
-
-    } catch (error) {
-      console.error('Erreur lors du chargement des données:', error);
-    } finally {
-      setLoading(false);
+    // Process results with detailed logging
+    if (chauffeursResult.data) {
+      const mappedChauffeurs = chauffeursResult.data.map(mapDbChauffeurToChauffeur);
+      console.log('👥 Loaded chauffeurs:', mappedChauffeurs.length);
+      setChauffeurs(mappedChauffeurs);
     }
-  };
+
+    if (vehiculesResult.data) {
+      const mappedVehicules = vehiculesResult.data.map(mapDbVehiculeToVehicule);
+      console.log('🚗 Loaded vehicules:', mappedVehicules.length);
+      setVehicules(mappedVehicules);
+    }
+
+    if (bonsResult.data) {
+      const mappedBons = bonsResult.data.map(mapDbBonToBon);
+      console.log('📋 Loaded bons:', mappedBons.length);
+      setBons(mappedBons);
+    }
+
+    if (anomaliesResult.data) {
+      const mappedAnomalies = anomaliesResult.data.map(mapDbAnomalieToAnomalie);
+      console.log('⚠️ Loaded anomalies:', mappedAnomalies.length);
+      setAnomalies(mappedAnomalies);
+    }
+
+    console.log('✅ Initial data loading complete');
+
+  } catch (error) {
+    console.error('❌ Error loading initial data:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Real-time subscriptions with better performance
   useEffect(() => {
