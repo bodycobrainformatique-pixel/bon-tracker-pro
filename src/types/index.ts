@@ -1,6 +1,6 @@
 // Types pour l'application de traçabilité des bons
 
-export type BonType = 'gasoil' | 'essence' | 'hybride';
+export type BonType = 'gasoil' | 'essence' | 'gasoil50';
 
 export interface Bon {
   id: string;
@@ -22,15 +22,10 @@ export interface Chauffeur {
   id: string;
   nom: string;
   prenom: string;
-  matricule: string;
+  matricule: string; // CIN or employee ID
   telephone: string;
   email?: string;
   adresse?: string;
-  dateNaissance?: string;
-  cinNumber?: string; // Carte d'identité nationale tunisienne
-  permisNumber?: string;
-  dateEmbauche?: string;
-  salaire?: number;
   statut: 'actif' | 'inactif';
   createdAt: string;
   updatedAt: string;
@@ -43,7 +38,7 @@ export interface Vehicule {
   modele: string;
   annee?: number;
   couleur?: string;
-  typeCarburant?: 'gasoil' | 'essence' | 'hybride' | 'electrique';
+  typeCarburant?: 'gasoil' | 'essence' | 'gasoil50';
   capaciteReservoir?: number; // en litres
   kilometrage?: number; // km actuel
   dateAchat?: string;
@@ -97,7 +92,7 @@ export interface Statistics {
   totalBons: number;
   montantGasoil: number;
   montantEssence: number;
-  montantHybride: number;
+  montantGasoil50: number;
   anomaliesCount: number;
 }
 

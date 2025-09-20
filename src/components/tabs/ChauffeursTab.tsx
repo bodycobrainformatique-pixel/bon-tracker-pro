@@ -134,31 +134,16 @@ export const ChauffeursTab = ({
                   <Badge className={chauffeur.statut === 'actif' ? 'bg-success text-success-foreground' : 'bg-muted text-muted-foreground'}>
                     {chauffeur.statut === 'actif' ? 'Actif' : 'Inactif'}
                   </Badge>
-                  {chauffeur.salaire && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {chauffeur.salaire.toLocaleString()} TND/mois
-                    </div>
-                  )}
                 </div>
 
                 <div className="text-sm">
-                  {chauffeur.dateEmbauche && (
-                    <div>
-                      <span className="text-muted-foreground">Embauche:</span>
-                      <div className="font-medium">{new Date(chauffeur.dateEmbauche).toLocaleDateString()}</div>
-                    </div>
-                  )}
-                  {chauffeur.permisNumber && (
-                    <div className="text-xs text-muted-foreground">
-                      Permis: {chauffeur.permisNumber}
-                    </div>
-                  )}
+                  <div>
+                    <span className="text-muted-foreground">Matricule:</span>
+                    <div className="font-medium">{chauffeur.matricule}</div>
+                  </div>
                 </div>
 
                 <div className="text-sm text-muted-foreground">
-                  {chauffeur.cinNumber && (
-                    <div className="mb-1">CIN: {chauffeur.cinNumber}</div>
-                  )}
                   Créé le {new Date(chauffeur.createdAt).toLocaleDateString()}
                 </div>
 

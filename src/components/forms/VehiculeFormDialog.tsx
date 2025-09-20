@@ -25,7 +25,7 @@ export const VehiculeFormDialog = ({
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     immatriculation: '',
-    type_carburant: 'gasoil' as 'gasoil' | 'essence' | 'hybride' | 'electrique',
+    type_carburant: 'gasoil' as 'gasoil' | 'essence' | 'gasoil50',
     marque: '',
     modele: '',
     annee: undefined as number | undefined,
@@ -38,7 +38,7 @@ export const VehiculeFormDialog = ({
     if (vehicule) {
       setFormData({
         immatriculation: vehicule.immatriculation,
-        type_carburant: (vehicule.typeCarburant === 'hybride' ? 'hybride' : vehicule.typeCarburant) || 'gasoil',
+        type_carburant: vehicule.typeCarburant || 'gasoil',
         marque: vehicule.marque || '',
         modele: vehicule.modele || '',
         annee: vehicule.annee,
@@ -143,7 +143,7 @@ export const VehiculeFormDialog = ({
               <Label htmlFor="type_carburant">Type de carburant *</Label>
               <Select
                 value={formData.type_carburant}
-                onValueChange={(value: 'gasoil' | 'essence' | 'hybride' | 'electrique') => 
+                onValueChange={(value: 'gasoil' | 'essence' | 'gasoil50') => 
                   handleInputChange('type_carburant', value)
                 }
               >
@@ -153,8 +153,7 @@ export const VehiculeFormDialog = ({
                 <SelectContent>
                   <SelectItem value="gasoil">Gasoil</SelectItem>
                   <SelectItem value="essence">Essence</SelectItem>
-                  <SelectItem value="hybride">Hybride</SelectItem>
-                  <SelectItem value="electrique">Électrique</SelectItem>
+                  <SelectItem value="gasoil50">Gasoil 50</SelectItem>
                 </SelectContent>
               </Select>
             </div>

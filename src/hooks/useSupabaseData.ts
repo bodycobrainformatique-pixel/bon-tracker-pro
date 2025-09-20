@@ -82,12 +82,7 @@ const mapDbChauffeurToChauffeur = (dbChauffeur: DbChauffeur): Chauffeur => ({
   matricule: dbChauffeur.cin, // Using CIN as matricule for consistency
   telephone: dbChauffeur.telephone,
   email: dbChauffeur.email || '',
-  adresse: dbChauffeur.adresse,
-  dateNaissance: dbChauffeur.date_naissance,
-  cinNumber: dbChauffeur.cin,
-  permisNumber: '', // Not stored in DB yet
-  dateEmbauche: dbChauffeur.date_embauche,
-  salaire: Number(dbChauffeur.salaire_base),
+  adresse: dbChauffeur.adresse || '',
   statut: dbChauffeur.statut as 'actif' | 'inactif',
   createdAt: dbChauffeur.created_at,
   updatedAt: dbChauffeur.updated_at
@@ -100,10 +95,7 @@ const mapDbVehiculeToVehicule = (dbVehicule: DbVehicule): Vehicule => ({
   modele: dbVehicule.modele,
   annee: dbVehicule.annee,
   couleur: dbVehicule.couleur,
-  typeCarburant: (dbVehicule.type_carburant === 'gasoil_50' ? 'hybride' : 
-                 dbVehicule.type_carburant === 'essence' ? 'essence' : 
-                 dbVehicule.type_carburant === 'hybride' ? 'hybride' :
-                 dbVehicule.type_carburant === 'electrique' ? 'electrique' : 'gasoil') as 'gasoil' | 'essence' | 'hybride' | 'electrique',
+  typeCarburant: dbVehicule.type_carburant as 'gasoil' | 'essence' | 'gasoil50',
   capaciteReservoir: Number(dbVehicule.capacite_reservoir),
   kilometrage: 0, // Auto-computed from bons
   dateAchat: dbVehicule.date_mise_en_service,
@@ -120,7 +112,7 @@ const mapDbBonToBon = (dbBon: DbBon): Bon => ({
   id: dbBon.id,
   numero: dbBon.numero,
   date: dbBon.date,
-  type: dbBon.type as 'gasoil' | 'essence' | 'hybride',
+  type: dbBon.type as 'gasoil' | 'essence' | 'gasoil50',
   montant: Number(dbBon.montant),
   kmInitial: dbBon.km_initial ? Number(dbBon.km_initial) : undefined,
   kmFinal: dbBon.km_final ? Number(dbBon.km_final) : undefined,
@@ -449,14 +441,15 @@ export const useSupabaseData = () => {
         .insert([{
           nom: chauffeurData.nom,
           prenom: chauffeurData.prenom,
-          cin: chauffeurData.cinNumber || chauffeurData.matricule, // Use CIN if available, fallback to matricule
+          cin: chauffeurData.matricule,
           telephone: chauffeurData.telephone,
           email: chauffeurData.email || null,
-          adresse: chauffeurData.adresse,
-          date_naissance: chauffeurData.dateNaissance,
-          date_embauche: chauffeurData.dateEmbauche,
-          salaire_base: chauffeurData.salaire || 0,
-          statut: chauffeurData.statut
+          adresse: chauffeurData.adresse || null,
+          date_naissance: '1980-01-01', // Default date
+          date_embauche: new Date().toISOString().split('T')[0], // Today's date
+          salaire_base: 0, // Default salary
+          statut: chauffeurData.statut,
+          notes: null
         }])
         .select()
         .single();
@@ -482,13 +475,10 @@ export const useSupabaseData = () => {
         .update({
           nom: updates.nom,
           prenom: updates.prenom,
-          cin: updates.cinNumber || updates.matricule,
+          cin: updates.matricule,
           telephone: updates.telephone,
           email: updates.email || null,
-          adresse: updates.adresse,
-          date_naissance: updates.dateNaissance,
-          date_embauche: updates.dateEmbauche,
-          salaire_base: updates.salaire,
+          adresse: updates.adresse || null,
           statut: updates.statut,
           updated_at: new Date().toISOString()
         })
@@ -665,13 +655,10 @@ export const useSupabaseData = () => {
             id: chauffeur.id,
             nom: chauffeur.nom,
             prenom: chauffeur.prenom,
-            cin: chauffeur.matricule || chauffeur.cinNumber || '',
+            cin: chauffeur.matricule,
             telephone: chauffeur.telephone,
             email: chauffeur.email || '',
             adresse: chauffeur.adresse || '',
-            date_naissance: chauffeur.dateNaissance || new Date().toISOString().split('T')[0],
-            date_embauche: chauffeur.dateEmbauche || new Date().toISOString().split('T')[0],
-            salaire_base: chauffeur.salaire || 0,
             statut: chauffeur.statut,
             created_at: chauffeur.createdAt,
             updated_at: chauffeur.updatedAt
@@ -801,9 +788,6 @@ export const useSupabaseData = () => {
             telephone: chauffeur.telephone,
             email: chauffeur.email,
             adresse: chauffeur.adresse,
-            date_naissance: chauffeur.dateNaissance,
-            date_embauche: chauffeur.dateEmbauche,
-            salaire_base: chauffeur.salaire || 0,
             statut: chauffeur.statut,
             created_at: chauffeur.createdAt,
             updated_at: chauffeur.updatedAt
@@ -960,7 +944,7 @@ export const useSupabaseData = () => {
       totalBons: stats.totalBons + 1,
       montantGasoil: stats.montantGasoil + (bon.type === 'gasoil' ? bon.montant : 0),
       montantEssence: stats.montantEssence + (bon.type === 'essence' ? bon.montant : 0),
-      montantHybride: stats.montantHybride + (bon.type === 'hybride' ? bon.montant : 0),
+      montantGasoil50: stats.montantGasoil50 + (bon.type === 'gasoil50' ? bon.montant : 0),
       anomaliesCount: stats.anomaliesCount
     }), {
       totalMontant: 0,
@@ -968,7 +952,7 @@ export const useSupabaseData = () => {
       totalBons: 0,
       montantGasoil: 0,
       montantEssence: 0,
-      montantHybride: 0,
+      montantGasoil50: 0,
       anomaliesCount: anomalies.filter(a => a.statut === 'a_verifier').length
     });
   };

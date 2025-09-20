@@ -92,7 +92,7 @@ export const ParametresTab = () => {
     switch (type) {
       case 'gasoil': return 'Gasoil';
       case 'essence': return 'Essence';
-      case 'hybride': return 'Hybride';
+      case 'gasoil50': return 'Gasoil 50';
       default: return type;
     }
   };

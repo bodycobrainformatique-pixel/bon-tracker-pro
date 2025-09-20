@@ -181,7 +181,7 @@ export const useTracabilityData = () => {
       totalBons: stats.totalBons + 1,
       montantGasoil: stats.montantGasoil + (bon.type === 'gasoil' ? bon.montant : 0),
       montantEssence: stats.montantEssence + (bon.type === 'essence' ? bon.montant : 0),
-      montantHybride: stats.montantHybride + (bon.type === 'hybride' ? bon.montant : 0),
+      montantGasoil50: stats.montantGasoil50 + (bon.type === 'gasoil50' ? bon.montant : 0),
       anomaliesCount: stats.anomaliesCount
     }), {
       totalMontant: 0,
@@ -189,7 +189,7 @@ export const useTracabilityData = () => {
       totalBons: 0,
       montantGasoil: 0,
       montantEssence: 0,
-      montantHybride: 0,
+      montantGasoil50: 0,
       anomaliesCount: anomalies.filter(a => a.statut === 'a_verifier').length
     });
   };
