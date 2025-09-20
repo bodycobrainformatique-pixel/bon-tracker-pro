@@ -80,12 +80,13 @@ const mapDbChauffeurToChauffeur = (dbChauffeur: DbChauffeur): Chauffeur => ({
   id: dbChauffeur.id,
   nom: dbChauffeur.nom,
   prenom: dbChauffeur.prenom,
-  matricule: dbChauffeur.cin,
+  matricule: dbChauffeur.cin, // Using CIN as matricule for consistency
   telephone: dbChauffeur.telephone,
   email: dbChauffeur.email || '',
   adresse: dbChauffeur.adresse,
   dateNaissance: dbChauffeur.date_naissance,
   cinNumber: dbChauffeur.cin,
+  permisNumber: '', // Not stored in DB yet
   dateEmbauche: dbChauffeur.date_embauche,
   salaire: Number(dbChauffeur.salaire_base),
   statut: dbChauffeur.statut as 'actif' | 'inactif',
@@ -100,13 +101,15 @@ const mapDbVehiculeToVehicule = (dbVehicule: DbVehicule): Vehicule => ({
   modele: dbVehicule.modele,
   annee: dbVehicule.annee,
   couleur: dbVehicule.couleur,
-  typeCarburant: dbVehicule.type_carburant as 'gasoil' | 'essence',
+  typeCarburant: dbVehicule.type_carburant as 'gasoil' | 'essence' | 'hybride' | 'electrique',
   capaciteReservoir: Number(dbVehicule.capacite_reservoir),
   kilometrage: Number(dbVehicule.kilometrage),
   dateAchat: dbVehicule.date_mise_en_service,
   prixAchat: Number(dbVehicule.cout_acquisition),
-  consommationReference: Number(dbVehicule.cout_maintenance_annuel || 0),
-  statut: (dbVehicule.statut === 'en_service' || dbVehicule.statut === 'en_panne' || dbVehicule.statut === 'en_maintenance' ? 'actif' : 'inactif') as 'actif' | 'inactif',
+  numeroSerie: dbVehicule.notes || '',
+  consommationReference: undefined, // Not directly mapped
+  coutKmReference: undefined, // Not directly mapped
+  statut: (dbVehicule.statut === 'en_service' ? 'actif' : 'inactif') as 'actif' | 'inactif',
   createdAt: dbVehicule.created_at,
   updatedAt: dbVehicule.updated_at
 });
@@ -246,28 +249,22 @@ export const useSupabaseData = () => {
 
   // Fonctions CRUD pour les bons
   const createBon = async (bonData: Omit<Bon, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newBon: Bon = {
-      ...bonData,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('bons')
         .insert([{
-          id: newBon.id,
-          numero: newBon.numero,
-          date: newBon.date,
-          type: newBon.type,
-          montant: newBon.montant,
-          km_initial: newBon.kmInitial,
+          numero: bonData.numero,
+          date: bonData.date,
+          type: bonData.type,
+          montant: bonData.montant,
+          km_initial: bonData.kmInitial,
           // km_final and distance will be managed by database trigger
-          chauffeur_id: newBon.chauffeurId,
-          vehicule_id: newBon.vehiculeId,
-          notes: newBon.notes
-        }]);
+          chauffeur_id: bonData.chauffeurId,
+          vehicule_id: bonData.vehiculeId,
+          notes: bonData.notes
+        }])
+        .select()
+        .single();
 
       if (error) {
         console.error('Erreur lors de la création du bon:', error);
@@ -277,6 +274,8 @@ export const useSupabaseData = () => {
       // Small delay to ensure trigger execution, then refresh all bons data
       await new Promise(resolve => setTimeout(resolve, 100));
       await reloadBonsData();
+      
+      const newBon = mapDbBonToBon(data as DbBon);
       
       // Détection d'anomalies
       const newAnomalies = detectAnomalies(newBon, bons, chauffeurs, vehicules);
@@ -346,35 +345,30 @@ export const useSupabaseData = () => {
 
   // Fonctions CRUD pour les chauffeurs
   const createChauffeur = async (chauffeurData: Omit<Chauffeur, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newChauffeur: Chauffeur = {
-      ...chauffeurData,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('chauffeurs')
         .insert([{
-          id: newChauffeur.id,
-          nom: newChauffeur.nom,
-          prenom: newChauffeur.prenom,
-          cin: newChauffeur.matricule,
-          telephone: newChauffeur.telephone,
-          email: newChauffeur.email,
-          adresse: newChauffeur.adresse,
-          date_naissance: newChauffeur.dateNaissance,
-          date_embauche: newChauffeur.dateEmbauche,
-          salaire_base: newChauffeur.salaire || 0,
-          statut: newChauffeur.statut
-        }]);
+          nom: chauffeurData.nom,
+          prenom: chauffeurData.prenom,
+          cin: chauffeurData.cinNumber || chauffeurData.matricule, // Use CIN if available, fallback to matricule
+          telephone: chauffeurData.telephone,
+          email: chauffeurData.email || null,
+          adresse: chauffeurData.adresse,
+          date_naissance: chauffeurData.dateNaissance,
+          date_embauche: chauffeurData.dateEmbauche,
+          salaire_base: chauffeurData.salaire || 0,
+          statut: chauffeurData.statut
+        }])
+        .select()
+        .single();
 
       if (error) {
         console.error('Erreur lors de la création du chauffeur:', error);
         throw error;
       }
 
+      const newChauffeur = mapDbChauffeurToChauffeur(data as DbChauffeur);
       setChauffeurs(prev => [newChauffeur, ...prev]);
       return newChauffeur;
     } catch (error) {
@@ -390,9 +384,9 @@ export const useSupabaseData = () => {
         .update({
           nom: updates.nom,
           prenom: updates.prenom,
-          cin: updates.matricule,
+          cin: updates.cinNumber || updates.matricule,
           telephone: updates.telephone,
-          email: updates.email,
+          email: updates.email || null,
           adresse: updates.adresse,
           date_naissance: updates.dateNaissance,
           date_embauche: updates.dateEmbauche,
@@ -439,37 +433,33 @@ export const useSupabaseData = () => {
 
   // Fonctions CRUD pour les véhicules
   const createVehicule = async (vehiculeData: Omit<Vehicule, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newVehicule: Vehicule = {
-      ...vehiculeData,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('vehicules')
         .insert([{
-          id: newVehicule.id,
-          immatriculation: newVehicule.immatriculation,
-          marque: newVehicule.marque,
-          modele: newVehicule.modele,
-          annee: newVehicule.annee,
-          couleur: newVehicule.couleur,
-          type_carburant: newVehicule.typeCarburant,
-          capacite_reservoir: newVehicule.capaciteReservoir,
-          kilometrage: newVehicule.kilometrage,
-          date_mise_en_service: newVehicule.dateAchat || new Date().toISOString().split('T')[0],
-          cout_acquisition: newVehicule.prixAchat || 0,
+          immatriculation: vehiculeData.immatriculation,
+          marque: vehiculeData.marque,
+          modele: vehiculeData.modele,
+          annee: vehiculeData.annee || new Date().getFullYear(),
+          couleur: vehiculeData.couleur || '',
+          type_carburant: vehiculeData.typeCarburant || 'gasoil',
+          capacite_reservoir: vehiculeData.capaciteReservoir || 50,
+          kilometrage: vehiculeData.kilometrage || 0,
+          date_mise_en_service: vehiculeData.dateAchat || new Date().toISOString().split('T')[0],
+          cout_acquisition: vehiculeData.prixAchat || 0,
           cout_maintenance_annuel: 0,
-          statut: newVehicule.statut
-        }]);
+          statut: vehiculeData.statut === 'actif' ? 'en_service' : 'hors_service',
+          notes: vehiculeData.numeroSerie || null
+        }])
+        .select()
+        .single();
 
       if (error) {
         console.error('Erreur lors de la création du véhicule:', error);
         throw error;
       }
 
+      const newVehicule = mapDbVehiculeToVehicule(data as DbVehicule);
       setVehicules(prev => [newVehicule, ...prev]);
       return newVehicule;
     } catch (error) {
@@ -493,7 +483,8 @@ export const useSupabaseData = () => {
           kilometrage: updates.kilometrage,
           date_mise_en_service: updates.dateAchat,
           cout_acquisition: updates.prixAchat,
-          statut: updates.statut,
+          statut: updates.statut === 'actif' ? 'en_service' : 'hors_service',
+          notes: updates.numeroSerie || null,
           updated_at: new Date().toISOString()
         })
         .eq('id', id);

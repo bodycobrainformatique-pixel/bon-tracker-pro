@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
+import { toast } from 'sonner';
 
 interface ChauffeurFormDialogProps {
   isOpen: boolean;
@@ -54,7 +55,7 @@ export const ChauffeurFormDialog = ({
         statut: chauffeur.statut
       });
     } else {
-      // Reset pour nouveau chauffeur
+      // Reset pour nouveau chauffeur - utilisez des valeurs par défaut pour les champs obligatoires
       setFormData({
         nom: '',
         prenom: '',
@@ -66,7 +67,7 @@ export const ChauffeurFormDialog = ({
         cinNumber: '',
         permisNumber: '',
         dateEmbauche: '',
-        salaire: undefined,
+        salaire: 0,
         statut: 'actif'
       });
     }
@@ -76,25 +77,46 @@ export const ChauffeurFormDialog = ({
     e.preventDefault();
     
     // Validation basique
-    if (!formData.nom || !formData.prenom || !formData.matricule || !formData.telephone) {
-      alert('Veuillez remplir tous les champs obligatoires');
+    if (!formData.nom || !formData.prenom || !formData.matricule || !formData.telephone || !formData.adresse) {
+      toast.error('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+
+    // Validation des dates requises
+    if (!formData.dateNaissance || !formData.dateEmbauche) {
+      toast.error('Les dates de naissance et d\'embauche sont obligatoires');
+      return;
+    }
+
+    // Validation du salaire requis
+    if (!formData.salaire || formData.salaire <= 0) {
+      toast.error('Le salaire est obligatoire et doit être supérieur à 0');
       return;
     }
 
     // Validation du téléphone tunisien
     const phoneRegex = /^(\+216|00216|216)?[-\s]?[2459]\d{7}$/;
     if (!phoneRegex.test(formData.telephone.replace(/\s/g, ''))) {
-      alert('Veuillez saisir un numéro de téléphone tunisien valide');
+      toast.error('Veuillez saisir un numéro de téléphone tunisien valide');
       return;
     }
 
     // Validation de l'email
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      alert('Veuillez saisir une adresse email valide');
+      toast.error('Veuillez saisir une adresse email valide');
       return;
     }
 
-    onSubmit(formData);
+    // Préparer les données pour l'envoi (convertir les champs pour matcher le schema DB)
+    const submitData = {
+      ...formData,
+      // Convertir les champs vides en null pour les champs optionnels
+      email: formData.email || null,
+      cinNumber: formData.cinNumber || null,
+      permisNumber: formData.permisNumber || null
+    };
+
+    onSubmit(submitData);
   };
 
   const handleInputChange = (field: keyof typeof formData, value: any) => {
@@ -139,12 +161,13 @@ export const ChauffeurFormDialog = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="dateNaissance">Date de naissance</Label>
+                  <Label htmlFor="dateNaissance">Date de naissance *</Label>
                   <Input
                     id="dateNaissance"
                     type="date"
                     value={formData.dateNaissance || ''}
                     onChange={(e) => handleInputChange('dateNaissance', e.target.value)}
+                    required
                   />
                 </div>
 
@@ -191,12 +214,13 @@ export const ChauffeurFormDialog = ({
               </div>
 
               <div className="space-y-2 mt-4">
-                <Label htmlFor="adresse">Adresse</Label>
+                <Label htmlFor="adresse">Adresse *</Label>
                 <Input
                   id="adresse"
                   value={formData.adresse || ''}
                   onChange={(e) => handleInputChange('adresse', e.target.value)}
                   placeholder="Rue de la République, Tunis 1001"
+                  required
                 />
               </div>
             </CardContent>
@@ -229,25 +253,27 @@ export const ChauffeurFormDialog = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="dateEmbauche">Date d'embauche</Label>
+                  <Label htmlFor="dateEmbauche">Date d'embauche *</Label>
                   <Input
                     id="dateEmbauche"
                     type="date"
                     value={formData.dateEmbauche || ''}
                     onChange={(e) => handleInputChange('dateEmbauche', e.target.value)}
+                    required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="salaire">Salaire (TND)</Label>
+                  <Label htmlFor="salaire">Salaire (TND) *</Label>
                   <Input
                     id="salaire"
                     type="number"
                     min="0"
                     step="10"
                     value={formData.salaire || ''}
-                    onChange={(e) => handleInputChange('salaire', parseFloat(e.target.value) || undefined)}
+                    onChange={(e) => handleInputChange('salaire', parseFloat(e.target.value) || 0)}
                     placeholder="1200"
+                    required
                   />
                 </div>
 
