@@ -82,7 +82,7 @@ export const BonFormDialog = ({
       if (selectedVehicle) {
         // Auto-set fuel type from vehicle
         const vehicleFuelType = selectedVehicle.typeCarburant === 'gasoil' ? 'gasoil' : 
-                               selectedVehicle.typeCarburant === 'essence' ? 'essence' : 'gasoil_50';
+                               selectedVehicle.typeCarburant === 'essence' ? 'essence' : 'hybride';
         
         setFormData(prev => ({ 
           ...prev, 

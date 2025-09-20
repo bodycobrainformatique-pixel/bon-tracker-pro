@@ -180,7 +180,7 @@ export const seedBons: Bon[] = [
     id: 'bon_5',
     numero: 'BON005',
     date: new Date('2024-09-19').toISOString().split('T')[0],
-    type: 'gasoil_50',
+    type: 'hybride',
     montant: 150.00,
     chauffeurId: 'chauffeur_1',
     vehiculeId: 'vehicule_2',

@@ -25,7 +25,7 @@ export const VehiculeFormDialog = ({
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     immatriculation: '',
-    type_carburant: 'gasoil' as 'gasoil' | 'essence' | 'gasoil_50',
+    type_carburant: 'gasoil' as 'gasoil' | 'essence' | 'hybride' | 'electrique',
     marque: '',
     modele: '',
     annee: undefined as number | undefined,
@@ -38,7 +38,7 @@ export const VehiculeFormDialog = ({
     if (vehicule) {
       setFormData({
         immatriculation: vehicule.immatriculation,
-        type_carburant: vehicule.typeCarburant || 'gasoil',
+        type_carburant: (vehicule.typeCarburant === 'hybride' ? 'hybride' : vehicule.typeCarburant) || 'gasoil',
         marque: vehicule.marque || '',
         modele: vehicule.modele || '',
         annee: vehicule.annee,
@@ -104,8 +104,8 @@ export const VehiculeFormDialog = ({
       typeCarburant: formData.type_carburant,
       capaciteReservoir: formData.capacite_reservoir,
       kilometrage: 0, // Auto-computed from bons
-      dateAchat: '',
-      prixAchat: 0,
+      dateAchat: undefined, // Will be handled as null in DB
+      prixAchat: undefined, // Will be handled as null in DB
       numeroSerie: formData.notes || '',
       statut: 'actif' as const
     };
@@ -143,7 +143,7 @@ export const VehiculeFormDialog = ({
               <Label htmlFor="type_carburant">Type de carburant *</Label>
               <Select
                 value={formData.type_carburant}
-                onValueChange={(value: 'gasoil' | 'essence' | 'gasoil_50') => 
+                onValueChange={(value: 'gasoil' | 'essence' | 'hybride' | 'electrique') => 
                   handleInputChange('type_carburant', value)
                 }
               >
@@ -153,7 +153,8 @@ export const VehiculeFormDialog = ({
                 <SelectContent>
                   <SelectItem value="gasoil">Gasoil</SelectItem>
                   <SelectItem value="essence">Essence</SelectItem>
-                  <SelectItem value="gasoil_50">Gasoil 50</SelectItem>
+                  <SelectItem value="hybride">Hybride</SelectItem>
+                  <SelectItem value="electrique">Électrique</SelectItem>
                 </SelectContent>
               </Select>
             </div>

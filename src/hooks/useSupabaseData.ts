@@ -100,8 +100,10 @@ const mapDbVehiculeToVehicule = (dbVehicule: DbVehicule): Vehicule => ({
   modele: dbVehicule.modele,
   annee: dbVehicule.annee,
   couleur: dbVehicule.couleur,
-  typeCarburant: (dbVehicule.type_carburant === 'gasoil_50' ? 'gasoil_50' : 
-                 dbVehicule.type_carburant === 'essence' ? 'essence' : 'gasoil') as 'gasoil' | 'essence' | 'gasoil_50',
+  typeCarburant: (dbVehicule.type_carburant === 'gasoil_50' ? 'hybride' : 
+                 dbVehicule.type_carburant === 'essence' ? 'essence' : 
+                 dbVehicule.type_carburant === 'hybride' ? 'hybride' :
+                 dbVehicule.type_carburant === 'electrique' ? 'electrique' : 'gasoil') as 'gasoil' | 'essence' | 'hybride' | 'electrique',
   capaciteReservoir: Number(dbVehicule.capacite_reservoir),
   kilometrage: 0, // Auto-computed from bons
   dateAchat: dbVehicule.date_mise_en_service,
@@ -118,7 +120,7 @@ const mapDbBonToBon = (dbBon: DbBon): Bon => ({
   id: dbBon.id,
   numero: dbBon.numero,
   date: dbBon.date,
-  type: dbBon.type as 'gasoil' | 'essence' | 'gasoil_50',
+  type: dbBon.type as 'gasoil' | 'essence' | 'hybride',
   montant: Number(dbBon.montant),
   kmInitial: dbBon.km_initial ? Number(dbBon.km_initial) : undefined,
   kmFinal: dbBon.km_final ? Number(dbBon.km_final) : undefined,
@@ -540,7 +542,7 @@ export const useSupabaseData = () => {
           couleur: vehiculeData.couleur || '',
           type_carburant: vehiculeData.typeCarburant || 'gasoil',
           capacite_reservoir: vehiculeData.capaciteReservoir || null,
-          date_mise_en_service: vehiculeData.dateAchat || new Date().toISOString().split('T')[0],
+          date_mise_en_service: vehiculeData.dateAchat ? vehiculeData.dateAchat : null,
           cout_acquisition: vehiculeData.prixAchat || null,
           cout_maintenance_annuel: 0,
           statut: vehiculeData.statut === 'actif' ? 'en_service' : 'hors_service',
@@ -575,7 +577,7 @@ export const useSupabaseData = () => {
           couleur: updates.couleur,
           type_carburant: updates.typeCarburant,
           capacite_reservoir: updates.capaciteReservoir,
-          date_mise_en_service: updates.dateAchat,
+          date_mise_en_service: updates.dateAchat || null,
           cout_acquisition: updates.prixAchat,
           statut: updates.statut === 'actif' ? 'en_service' : 'hors_service',
           notes: updates.numeroSerie || null,
@@ -958,7 +960,7 @@ export const useSupabaseData = () => {
       totalBons: stats.totalBons + 1,
       montantGasoil: stats.montantGasoil + (bon.type === 'gasoil' ? bon.montant : 0),
       montantEssence: stats.montantEssence + (bon.type === 'essence' ? bon.montant : 0),
-      montantGasoil50: stats.montantGasoil50 + (bon.type === 'gasoil_50' ? bon.montant : 0),
+      montantHybride: stats.montantHybride + (bon.type === 'hybride' ? bon.montant : 0),
       anomaliesCount: stats.anomaliesCount
     }), {
       totalMontant: 0,
@@ -966,7 +968,7 @@ export const useSupabaseData = () => {
       totalBons: 0,
       montantGasoil: 0,
       montantEssence: 0,
-      montantGasoil50: 0,
+      montantHybride: 0,
       anomaliesCount: anomalies.filter(a => a.statut === 'a_verifier').length
     });
   };
