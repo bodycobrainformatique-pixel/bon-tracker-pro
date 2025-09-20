@@ -73,6 +73,13 @@ export type Database = {
             foreignKeyName: "anomalies_vehicule_id_fkey"
             columns: ["vehicule_id"]
             isOneToOne: false
+            referencedRelation: "v_vehicule_km_current"
+            referencedColumns: ["vehicule_id"]
+          },
+          {
+            foreignKeyName: "anomalies_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
             referencedRelation: "vehicules"
             referencedColumns: ["id"]
           },
@@ -81,6 +88,8 @@ export type Database = {
       bons: {
         Row: {
           chauffeur_id: string
+          closed_at_date: string | null
+          closed_by_bon_id: string | null
           created_at: string
           date: string
           distance: number | null
@@ -97,6 +106,8 @@ export type Database = {
         }
         Insert: {
           chauffeur_id: string
+          closed_at_date?: string | null
+          closed_by_bon_id?: string | null
           created_at?: string
           date: string
           distance?: number | null
@@ -113,6 +124,8 @@ export type Database = {
         }
         Update: {
           chauffeur_id?: string
+          closed_at_date?: string | null
+          closed_by_bon_id?: string | null
           created_at?: string
           date?: string
           distance?: number | null
@@ -134,6 +147,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "chauffeurs"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bons_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "v_vehicule_km_current"
+            referencedColumns: ["vehicule_id"]
           },
           {
             foreignKeyName: "bons_vehicule_id_fkey"
@@ -248,54 +268,51 @@ export type Database = {
       }
       vehicules: {
         Row: {
-          annee: number
-          capacite_reservoir: number
-          couleur: string
-          cout_acquisition: number
+          annee: number | null
+          capacite_reservoir: number | null
+          couleur: string | null
+          cout_acquisition: number | null
           cout_maintenance_annuel: number | null
           created_at: string
-          date_mise_en_service: string
+          date_mise_en_service: string | null
           id: string
           immatriculation: string
-          kilometrage: number
-          marque: string
-          modele: string
+          marque: string | null
+          modele: string | null
           notes: string | null
           statut: string
           type_carburant: string
           updated_at: string
         }
         Insert: {
-          annee: number
-          capacite_reservoir: number
-          couleur: string
-          cout_acquisition: number
+          annee?: number | null
+          capacite_reservoir?: number | null
+          couleur?: string | null
+          cout_acquisition?: number | null
           cout_maintenance_annuel?: number | null
           created_at?: string
-          date_mise_en_service: string
+          date_mise_en_service?: string | null
           id?: string
           immatriculation: string
-          kilometrage?: number
-          marque: string
-          modele: string
+          marque?: string | null
+          modele?: string | null
           notes?: string | null
           statut?: string
           type_carburant: string
           updated_at?: string
         }
         Update: {
-          annee?: number
-          capacite_reservoir?: number
-          couleur?: string
-          cout_acquisition?: number
+          annee?: number | null
+          capacite_reservoir?: number | null
+          couleur?: string | null
+          cout_acquisition?: number | null
           cout_maintenance_annuel?: number | null
           created_at?: string
-          date_mise_en_service?: string
+          date_mise_en_service?: string | null
           id?: string
           immatriculation?: string
-          kilometrage?: number
-          marque?: string
-          modele?: string
+          marque?: string | null
+          modele?: string | null
           notes?: string | null
           statut?: string
           type_carburant?: string
@@ -305,7 +322,41 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_vehicule_daily_stats: {
+        Row: {
+          cout_tnd: number | null
+          immatriculation: string | null
+          jour: string | null
+          km_total: number | null
+          l_per_100km: number | null
+          litres_total: number | null
+          vehicule_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bons_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "v_vehicule_km_current"
+            referencedColumns: ["vehicule_id"]
+          },
+          {
+            foreignKeyName: "bons_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "vehicules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_vehicule_km_current: {
+        Row: {
+          current_km: number | null
+          immatriculation: string | null
+          vehicule_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
