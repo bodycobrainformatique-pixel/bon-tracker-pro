@@ -50,6 +50,8 @@ interface DbBon {
   date: string;
   type: string;
   montant: number;
+  km_initial: number | null;
+  km_final: number | null;
   distance: number | null;
   chauffeur_id: string;
   vehicule_id: string;
@@ -115,6 +117,8 @@ const mapDbBonToBon = (dbBon: DbBon): Bon => ({
   date: dbBon.date,
   type: dbBon.type as 'gasoil' | 'especes',
   montant: Number(dbBon.montant),
+  kmInitial: dbBon.km_initial ? Number(dbBon.km_initial) : undefined,
+  kmFinal: dbBon.km_final ? Number(dbBon.km_final) : undefined,
   distance: dbBon.distance ? Number(dbBon.distance) : undefined,
   chauffeurId: dbBon.chauffeur_id,
   vehiculeId: dbBon.vehicule_id,
