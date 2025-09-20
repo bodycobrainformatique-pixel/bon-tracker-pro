@@ -75,19 +75,42 @@ export const BonFormDialog = ({
     }
   }, [bon, isOpen]);
 
-  // Auto-set fuel type based on selected vehicle
+  // Auto-set fuel type and initial km based on selected vehicle
   useEffect(() => {
     if (formData.vehiculeId && !bon) {
       const selectedVehicle = vehicules.find(v => v.id === formData.vehiculeId);
       if (selectedVehicle) {
-      // Auto-set fuel type from vehicle (direct mapping)
+        // Find the most recent bon for this vehicle
+        const vehicleBons = bons
+          .filter(b => b.vehiculeId === formData.vehiculeId)
+          .sort((a, b) => {
+            // Sort by date descending, then by numero descending
+            if (a.date !== b.date) {
+              return new Date(b.date).getTime() - new Date(a.date).getTime();
+            }
+            return b.numero.localeCompare(a.numero);
+          });
+
+        const lastBon = vehicleBons[0];
+        const autoKmInitial = lastBon?.kmFinal;
+
+        // Auto-set fuel type from vehicle and km initial from last bon
         setFormData(prev => ({ 
           ...prev, 
-          type: selectedVehicle.typeCarburant as BonType
+          type: selectedVehicle.typeCarburant as BonType,
+          kmInitial: autoKmInitial
         }));
+
+        // Show toast if km initial was auto-set
+        if (autoKmInitial) {
+          toast({
+            title: "Km initial calculé",
+            description: `Km initial défini automatiquement à ${autoKmInitial} km (depuis le dernier bon du véhicule)`
+          });
+        }
       }
     }
-  }, [formData.vehiculeId, bon, vehicules]);
+  }, [formData.vehiculeId, bon, vehicules, bons, toast]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
