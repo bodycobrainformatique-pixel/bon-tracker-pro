@@ -541,7 +541,136 @@ export const useSupabaseData = () => {
     }
   };
 
-  // Fonction pour synchroniser avec localStorage
+  // Fonction pour sauvegarder les données actuelles vers Supabase
+  const saveCurrentDataToSupabase = async () => {
+    try {
+      let savedCount = 0;
+      let errorCount = 0;
+
+      // Sauvegarder les chauffeurs
+      for (const chauffeur of chauffeurs) {
+        const { error } = await supabase
+          .from('chauffeurs')
+          .upsert({
+            id: chauffeur.id,
+            nom: chauffeur.nom,
+            prenom: chauffeur.prenom,
+            cin: chauffeur.matricule || chauffeur.cinNumber || '',
+            telephone: chauffeur.telephone,
+            email: chauffeur.email || '',
+            adresse: chauffeur.adresse || '',
+            date_naissance: chauffeur.dateNaissance || new Date().toISOString().split('T')[0],
+            date_embauche: chauffeur.dateEmbauche || new Date().toISOString().split('T')[0],
+            salaire_base: chauffeur.salaire || 0,
+            statut: chauffeur.statut,
+            created_at: chauffeur.createdAt,
+            updated_at: chauffeur.updatedAt
+          });
+
+        if (error) {
+          console.error('Erreur lors de la sauvegarde du chauffeur:', chauffeur.id, error);
+          errorCount++;
+        } else {
+          savedCount++;
+        }
+      }
+
+      // Sauvegarder les véhicules
+      for (const vehicule of vehicules) {
+        const { error } = await supabase
+          .from('vehicules')
+          .upsert({
+            id: vehicule.id,
+            immatriculation: vehicule.immatriculation,
+            marque: vehicule.marque,
+            modele: vehicule.modele,
+            annee: vehicule.annee || new Date().getFullYear(),
+            couleur: vehicule.couleur || '',
+            type_carburant: vehicule.typeCarburant || 'gasoil',
+            capacite_reservoir: vehicule.capaciteReservoir || 0,
+            kilometrage: vehicule.kilometrage || 0,
+            date_mise_en_service: vehicule.dateAchat || new Date().toISOString().split('T')[0],
+            cout_acquisition: vehicule.prixAchat || 0,
+            cout_maintenance_annuel: vehicule.consommationReference || 0,
+            statut: vehicule.statut === 'actif' ? 'en_service' : 'hors_service',
+            created_at: vehicule.createdAt,
+            updated_at: vehicule.updatedAt
+          });
+
+        if (error) {
+          console.error('Erreur lors de la sauvegarde du véhicule:', vehicule.id, error);
+          errorCount++;
+        } else {
+          savedCount++;
+        }
+      }
+
+      // Sauvegarder les bons
+      for (const bon of bons) {
+        const { error } = await supabase
+          .from('bons')
+          .upsert({
+            id: bon.id,
+            numero: bon.numero,
+            date: bon.date,
+            type: bon.type,
+            montant: bon.montant,
+            distance: bon.distance || null,
+            chauffeur_id: bon.chauffeurId,
+            vehicule_id: bon.vehiculeId,
+            status: bon.status === 'draft' ? 'en_cours' : bon.status === 'completed' ? 'valide' : 'annule',
+            notes: bon.notes || null,
+            created_at: bon.createdAt,
+            updated_at: bon.updatedAt
+          });
+
+        if (error) {
+          console.error('Erreur lors de la sauvegarde du bon:', bon.id, error);
+          errorCount++;
+        } else {
+          savedCount++;
+        }
+      }
+
+      // Sauvegarder les anomalies
+      for (const anomalie of anomalies) {
+        const { error } = await supabase
+          .from('anomalies')
+          .upsert({
+            id: anomalie.id,
+            type: anomalie.type,
+            description: anomalie.details || '',
+            severite: anomalie.gravite,
+            statut: anomalie.statut === 'justifiee' ? 'resolue' : anomalie.statut === 'fraude' ? 'ignoree' : 'a_verifier',
+            bon_id: anomalie.bonId || null,
+            chauffeur_id: null,
+            vehicule_id: null,
+            notes: anomalie.commentaires || null,
+            created_at: anomalie.createdAt,
+            updated_at: anomalie.updatedAt
+          });
+
+        if (error) {
+          console.error('Erreur lors de la sauvegarde de l\'anomalie:', anomalie.id, error);
+          errorCount++;
+        } else {
+          savedCount++;
+        }
+      }
+
+      console.log(`Sauvegarde terminée: ${savedCount} éléments sauvegardés, ${errorCount} erreurs`);
+      
+      if (errorCount > 0) {
+        throw new Error(`${errorCount} erreurs lors de la sauvegarde`);
+      }
+
+      return { savedCount, errorCount };
+
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+      throw error;
+    }
+  };
   const syncWithLocalStorage = async () => {
     try {
       // Récupérer les données de localStorage
@@ -763,6 +892,7 @@ export const useSupabaseData = () => {
     // Utilitaires
     getFilteredBons,
     getStatistics,
-    syncWithLocalStorage
+    syncWithLocalStorage,
+    saveCurrentDataToSupabase
   };
 };

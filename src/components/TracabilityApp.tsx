@@ -44,7 +44,7 @@ export const TracabilityApp = () => {
     getStatistics
   } = useTracabilityData();
 
-  const { syncWithLocalStorage } = useSupabaseData();
+  const { syncWithLocalStorage, saveCurrentDataToSupabase } = useSupabaseData();
 
   const [activeTab, setActiveTab] = useState('bons');
   const [bonFilters, setBonFilters] = useState<BonFilters>({});
@@ -94,15 +94,16 @@ export const TracabilityApp = () => {
   const handleSaveToDatabase = async () => {
     setIsSaving(true);
     try {
-      await syncWithLocalStorage();
+      const result = await saveCurrentDataToSupabase();
       toast({
         title: "Données sauvegardées",
-        description: "Toutes les données ont été sauvegardées dans la base de données",
+        description: `${result.savedCount} éléments sauvegardés avec succès dans Supabase`,
       });
     } catch (error) {
+      console.error('Erreur de sauvegarde:', error);
       toast({
         title: "Erreur de sauvegarde",
-        description: "Une erreur s'est produite lors de la sauvegarde",
+        description: "Une erreur s'est produite lors de la sauvegarde. Vérifiez la console pour plus de détails.",
         variant: "destructive",
       });
     } finally {
