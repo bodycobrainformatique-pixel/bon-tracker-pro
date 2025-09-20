@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Bon, Chauffeur, Vehicule, Anomalie, BonFilters, Statistics } from '@/types';
 import { StorageService, KEYS } from '@/lib/storage';
-import { seedBons, seedChauffeurs, seedVehicules, seedAnomalies } from '@/lib/seedData';
+import { bons, chauffeurs, vehicules, anomalies } from '@/lib/seedData';
 import { detectAnomalies } from '@/lib/anomaliesDetection';
 
 export const useTracabilityData = () => {
@@ -17,10 +17,10 @@ export const useTracabilityData = () => {
   useEffect(() => {
     const initializeData = () => {
       // Charger ou initialiser avec les données de seed
-      const storedBons = StorageService.get<Bon[]>(KEYS.BONS, seedBons);
-      const storedChauffeurs = StorageService.get<Chauffeur[]>(KEYS.CHAUFFEURS, seedChauffeurs);
-      const storedVehicules = StorageService.get<Vehicule[]>(KEYS.VEHICULES, seedVehicules);
-      const storedAnomalies = StorageService.get<Anomalie[]>(KEYS.ANOMALIES, seedAnomalies);
+      const storedBons = StorageService.get<Bon[]>(KEYS.BONS, bons);
+      const storedChauffeurs = StorageService.get<Chauffeur[]>(KEYS.CHAUFFEURS, chauffeurs);
+      const storedVehicules = StorageService.get<Vehicule[]>(KEYS.VEHICULES, vehicules);
+      const storedAnomalies = StorageService.get<Anomalie[]>(KEYS.ANOMALIES, anomalies);
 
       setBons(storedBons);
       setChauffeurs(storedChauffeurs);

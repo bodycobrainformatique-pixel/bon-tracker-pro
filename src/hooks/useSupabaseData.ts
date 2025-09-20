@@ -5,7 +5,7 @@ import { Bon, Chauffeur, Vehicule, Anomalie, BonFilters, Statistics } from '@/ty
 import { StorageService, KEYS } from '@/lib/storage';
 import { supabase } from '@/integrations/supabase/client';
 import { detectAnomalies } from '@/lib/anomaliesDetection';
-import { seedBons, seedChauffeurs, seedVehicules, seedAnomalies } from '@/lib/seedData';
+import { bons, chauffeurs, vehicules, anomalies } from '@/lib/seedData';
 
 // Types pour les données de la base Supabase
 interface DbChauffeur {
@@ -160,7 +160,7 @@ export const useSupabaseData = () => {
 
         if (chauffeursError) {
           console.error('Erreur lors du chargement des chauffeurs:', chauffeursError);
-          setChauffeurs(StorageService.get<Chauffeur[]>(KEYS.CHAUFFEURS, seedChauffeurs));
+          setChauffeurs(StorageService.get<Chauffeur[]>(KEYS.CHAUFFEURS, chauffeurs));
         } else {
           const mappedChauffeurs = (chauffeursData as DbChauffeur[]).map(mapDbChauffeurToChauffeur);
           setChauffeurs(mappedChauffeurs);
@@ -174,7 +174,7 @@ export const useSupabaseData = () => {
 
         if (vehiculesError) {
           console.error('Erreur lors du chargement des véhicules:', vehiculesError);
-          setVehicules(StorageService.get<Vehicule[]>(KEYS.VEHICULES, seedVehicules));
+          setVehicules(StorageService.get<Vehicule[]>(KEYS.VEHICULES, vehicules));
         } else {
           const mappedVehicules = (vehiculesData as DbVehicule[]).map(mapDbVehiculeToVehicule);
           setVehicules(mappedVehicules);
@@ -188,7 +188,7 @@ export const useSupabaseData = () => {
 
         if (bonsError) {
           console.error('Erreur lors du chargement des bons:', bonsError);
-          setBons(StorageService.get<Bon[]>(KEYS.BONS, seedBons));
+        setBons(StorageService.get<Bon[]>(KEYS.BONS, bons));
         } else {
           const mappedBons = (bonsData as DbBon[]).map(mapDbBonToBon);
           setBons(mappedBons);
@@ -202,7 +202,7 @@ export const useSupabaseData = () => {
 
         if (anomaliesError) {
           console.error('Erreur lors du chargement des anomalies:', anomaliesError);
-          setAnomalies(StorageService.get<Anomalie[]>(KEYS.ANOMALIES, seedAnomalies));
+        setAnomalies(StorageService.get<Anomalie[]>(KEYS.ANOMALIES, anomalies));
         } else {
           const mappedAnomalies = (anomaliesData as DbAnomalie[]).map(mapDbAnomalieToAnomalie);
           setAnomalies(mappedAnomalies);
@@ -210,10 +210,10 @@ export const useSupabaseData = () => {
       } catch (error) {
         console.error('Erreur lors du chargement des données:', error);
         // Fallback sur localStorage
-        setBons(StorageService.get<Bon[]>(KEYS.BONS, seedBons));
-        setChauffeurs(StorageService.get<Chauffeur[]>(KEYS.CHAUFFEURS, seedChauffeurs));
-        setVehicules(StorageService.get<Vehicule[]>(KEYS.VEHICULES, seedVehicules));
-        setAnomalies(StorageService.get<Anomalie[]>(KEYS.ANOMALIES, seedAnomalies));
+        setBons(StorageService.get<Bon[]>(KEYS.BONS, bons));
+        setChauffeurs(StorageService.get<Chauffeur[]>(KEYS.CHAUFFEURS, chauffeurs));
+        setVehicules(StorageService.get<Vehicule[]>(KEYS.VEHICULES, vehicules));
+        setAnomalies(StorageService.get<Anomalie[]>(KEYS.ANOMALIES, anomalies));
       } finally {
         setLoading(false);
       }
@@ -659,6 +659,9 @@ export const useSupabaseData = () => {
             telephone: chauffeur.telephone,
             email: chauffeur.email || '',
             adresse: chauffeur.adresse || '',
+            date_naissance: '1980-01-01', // Default date
+            date_embauche: new Date().toISOString().split('T')[0], // Today's date  
+            salaire_base: 0, // Default salary
             statut: chauffeur.statut,
             created_at: chauffeur.createdAt,
             updated_at: chauffeur.updatedAt
@@ -788,6 +791,9 @@ export const useSupabaseData = () => {
             telephone: chauffeur.telephone,
             email: chauffeur.email,
             adresse: chauffeur.adresse,
+            date_naissance: '1980-01-01', // Default date
+            date_embauche: new Date().toISOString().split('T')[0], // Today's date
+            salaire_base: 0, // Default salary
             statut: chauffeur.statut,
             created_at: chauffeur.createdAt,
             updated_at: chauffeur.updatedAt
