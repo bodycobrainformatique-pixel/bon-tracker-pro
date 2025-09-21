@@ -239,6 +239,12 @@ export const BonsTab = ({
                   
                   <div className="flex space-x-2">
                     {getTypeBadge(bon.type)}
+                    {/* Status badge for ISSUED bons */}
+                    {!bon.kmInitial && !bon.kmFinal && (
+                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                        En attente de km initial
+                      </Badge>
+                    )}
                   </div>
 
                   <div className="text-center">

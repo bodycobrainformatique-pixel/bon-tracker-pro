@@ -403,7 +403,7 @@ const loadInitialData = async () => {
       // Optimistic update - add to local state immediately
       setBons(prev => [newBon, ...prev]);
       
-      // Automatically detect anomalies for the new bon
+      // Detect anomalies for the new bon (only duplicates for ISSUED bons)
       const detectedAnomalies = detectAnomalies(newBon, bons, chauffeurs, vehicules);
       for (const anomalie of detectedAnomalies) {
         await supabase.from('anomalies').insert({
@@ -414,6 +414,38 @@ const loadInitialData = async () => {
           bon_id: anomalie.bonId,
           notes: anomalie.details
         });
+      }
+
+      // If this bon has km_initial, check previous bon for anomalies
+      if (newBon.kmInitial !== undefined) {
+        const previousBon = bons
+          .filter(b => b.vehiculeId === newBon.vehiculeId && b.id !== newBon.id)
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        
+        if (previousBon) {
+          // Re-fetch the previous bon to get updated km_final from database trigger
+          const { data: previousBonData } = await supabase
+            .from('bons')
+            .select('*')
+            .eq('id', previousBon.id)
+            .single();
+          
+          if (previousBonData) {
+            const updatedPreviousBon = mapDbBonToBon(previousBonData);
+            const previousBonAnomalies = detectAnomalies(updatedPreviousBon, [...bons, newBon], chauffeurs, vehicules);
+            
+            for (const anomalie of previousBonAnomalies) {
+              await supabase.from('anomalies').insert({
+                type: anomalie.type,
+                description: anomalie.details,
+                severite: anomalie.gravite,
+                statut: anomalie.statut,
+                bon_id: anomalie.bonId,
+                notes: anomalie.details
+              });
+            }
+          }
+        }
       }
 
       return newBon;
@@ -454,6 +486,52 @@ const loadInitialData = async () => {
       
       // Optimistic update - update in local state immediately
       setBons(prev => prev.map(b => b.id === id ? updatedBon : b));
+      
+      // If km_initial was just added, check previous bon for anomalies
+      const originalBon = bons.find(b => b.id === id);
+      if (originalBon && originalBon.kmInitial === undefined && updatedBon.kmInitial !== undefined) {
+        const previousBon = bons
+          .filter(b => b.vehiculeId === updatedBon.vehiculeId && b.id !== updatedBon.id)
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        
+        if (previousBon) {
+          // Re-fetch the previous bon to get updated km_final from database trigger
+          const { data: previousBonData } = await supabase
+            .from('bons')
+            .select('*')
+            .eq('id', previousBon.id)
+            .single();
+          
+          if (previousBonData) {
+            const refreshedPreviousBon = mapDbBonToBon(previousBonData);
+            const previousBonAnomalies = detectAnomalies(refreshedPreviousBon, [...bons.filter(b => b.id !== id), updatedBon], chauffeurs, vehicules);
+            
+            for (const anomalie of previousBonAnomalies) {
+              await supabase.from('anomalies').insert({
+                type: anomalie.type,
+                description: anomalie.details,
+                severite: anomalie.gravite,
+                statut: anomalie.statut,
+                bon_id: anomalie.bonId,
+                notes: anomalie.details
+              });
+            }
+          }
+        }
+      }
+      
+      // Re-run anomaly detection for the updated bon
+      const updatedBonAnomalies = detectAnomalies(updatedBon, bons.filter(b => b.id !== id), chauffeurs, vehicules);
+      for (const anomalie of updatedBonAnomalies) {
+        await supabase.from('anomalies').insert({
+          type: anomalie.type,
+          description: anomalie.details,
+          severite: anomalie.gravite,
+          statut: anomalie.statut,
+          bon_id: anomalie.bonId,
+          notes: anomalie.details
+        });
+      }
       
       return updatedBon;
     } catch (error) {
