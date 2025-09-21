@@ -32,7 +32,6 @@ import {
   Menu,
   FileText,
   Users,
-  Car,
   BarChart3,
   Wifi,
   WifiOff,
@@ -149,7 +148,7 @@ export const ProfessionalHeader = ({
   const navigationItems = [
     { id: 'bons', label: 'Bons', icon: FileText },
     { id: 'chauffeurs', label: 'Chauffeurs', icon: Users },
-    { id: 'vehicules', label: 'Véhicules', icon: Car },
+    { id: 'vehicules', label: 'Véhicules', icon: Truck },
     { id: 'anomalies', label: 'Anomalies', icon: AlertTriangle },
     { id: 'rapports', label: 'Rapports', icon: BarChart3 },
     { id: 'parametres', label: 'Paramètres', icon: Settings },
