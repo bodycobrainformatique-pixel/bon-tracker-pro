@@ -42,9 +42,25 @@ export const detectAnomalies = (
     return anomalies;
   }
 
-  // For IN_USE and CLOSED bons, check km-related anomalies
-  if (bonPhase === 'IN_USE' || bonPhase === 'CLOSED') {
-    // Détection de recul kilométrique (when km_initial is known)
+  // For IN_USE bons, only check for duplicates (no distance-based checks)
+  if (bonPhase === 'IN_USE') {
+    return anomalies;
+  }
+
+  // For CLOSED bons only, check comprehensive anomalies including distance-based checks
+  if (bonPhase === 'CLOSED') {
+    // Validation km_final < km_initial
+    if (bon.kmInitial !== undefined && bon.kmFinal !== undefined && bon.kmFinal < bon.kmInitial) {
+      anomalies.push(createAnomalie(
+        bon.id,
+        'km_invalide',
+        'critique',
+        95,
+        `Kilométrage final (${bon.kmFinal}) inférieur au kilométrage initial (${bon.kmInitial}). Différence: ${bon.kmInitial - bon.kmFinal} km.`
+      ));
+    }
+
+    // Détection de recul kilométrique (for CLOSED bons only)
     if (bon.kmInitial !== undefined) {
       const vehiculeBons = existingBons
         .filter(b => b.vehiculeId === bon.vehiculeId && b.id !== bon.id && b.kmFinal !== undefined)
@@ -60,20 +76,6 @@ export const detectAnomalies = (
           `Kilométrage initial (${bon.kmInitial}) inférieur au dernier kilométrage final (${lastBon.kmFinal}) du véhicule. Recul de ${lastBon.kmFinal - bon.kmInitial} km.`
         ));
       }
-    }
-  }
-
-  // For CLOSED bons only, check comprehensive anomalies
-  if (bonPhase === 'CLOSED') {
-    // Validation km_final < km_initial
-    if (bon.kmInitial !== undefined && bon.kmFinal !== undefined && bon.kmFinal < bon.kmInitial) {
-      anomalies.push(createAnomalie(
-        bon.id,
-        'km_invalide',
-        'critique',
-        95,
-        `Kilométrage final (${bon.kmFinal}) inférieur au kilométrage initial (${bon.kmInitial}). Différence: ${bon.kmInitial - bon.kmFinal} km.`
-      ));
     }
 
     // Distance incohérente (only when distance is known)
