@@ -21,7 +21,6 @@ import { Truck, Users, FileText, AlertTriangle, Settings } from 'lucide-react';
 export const TracabilityApp = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -107,13 +106,6 @@ export const TracabilityApp = () => {
     }
   };
 
-  // Real-time sync - no manual save needed
-  const handleSaveToDatabase = async () => {
-    toast({
-      title: "Synchronisation automatique",
-      description: "Les données sont automatiquement synchronisées en temps réel",
-    });
-  };
 
   const filteredBons = getFilteredBons(bonFilters);
   const statistics = getStatistics(filteredBons);
@@ -135,8 +127,6 @@ export const TracabilityApp = () => {
       <ProfessionalHeader 
         user={user}
         statistics={statistics}
-        isSaving={isSaving}
-        onSave={handleSaveToDatabase}
         onSignOut={handleSignOut}
         anomaliesCount={anomalies.filter(a => a.statut === 'a_verifier').length}
         activeTab={activeTab}

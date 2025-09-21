@@ -20,7 +20,6 @@ import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Truck, 
-  Save, 
   LogOut, 
   ChevronDown, 
   Fuel, 
@@ -41,8 +40,6 @@ import {
 interface ProfessionalHeaderProps {
   user: User | null;
   statistics: Statistics;
-  isSaving: boolean;
-  onSave: () => void;
   onSignOut: () => void;
   anomaliesCount: number;
   activeTab: string;
@@ -53,8 +50,6 @@ interface ProfessionalHeaderProps {
 export const ProfessionalHeader = ({ 
   user, 
   statistics, 
-  isSaving, 
-  onSave, 
   onSignOut,
   anomaliesCount,
   activeTab,
@@ -382,17 +377,6 @@ export const ProfessionalHeader = ({
                 )}
               </div>
 
-              {/* Save Button */}
-              <Button
-                onClick={onSave}
-                disabled={isSaving}
-                variant="default"
-                size="sm"
-                className="hidden sm:flex"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {isSaving ? 'Sync...' : 'Sauvegarder'}
-              </Button>
 
               {/* Export Dropdown */}
               <DropdownMenu>
@@ -428,11 +412,6 @@ export const ProfessionalHeader = ({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={onSave} disabled={isSaving}>
-                      <Save className="w-4 h-4 mr-2" />
-                      {isSaving ? 'Synchronisation...' : 'Sauvegarder'}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => handleExport('pdf')}>
                       <FileDown className="w-4 h-4 mr-2" />
                       Export PDF
