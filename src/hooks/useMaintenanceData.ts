@@ -97,6 +97,10 @@ export const useMaintenanceData = () => {
         task: workOrder.task ? {
           ...workOrder.task,
           type: workOrder.task.type as 'preventive' | 'corrective'
+        } : undefined,
+        plan: workOrder.plan ? {
+          ...workOrder.plan,
+          statut: workOrder.plan.statut as 'actif' | 'suspendu'
         } : undefined
       })));
       setEvents((eventsData.data || []).map(event => ({
