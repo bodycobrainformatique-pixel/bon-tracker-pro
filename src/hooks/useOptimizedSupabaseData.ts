@@ -11,6 +11,7 @@ import {
   BonType
 } from '@/types';
 import { detectAnomalies } from '@/lib/anomaliesDetection';
+import { runAnomalyDetectionTests } from '@/lib/testAnomaliesDetection';
 
 // Database interface mappings
 interface DbChauffeur {
@@ -144,53 +145,58 @@ export const useOptimizedSupabaseData = () => {
   const [anomalies, setAnomalies] = useState<Anomalie[]>([]);
   const [loading, setLoading] = useState(true);
 
-// Optimized data loading function with better error handling
-const loadInitialData = async () => {
-  try {
-    console.log('🔄 Loading initial data...');
-    setLoading(true);
+  // Load initial data
+  const loadInitialData = async () => {
+    try {
+      console.log('🔄 Loading initial data...');
+      setLoading(true);
 
-    // Parallel data loading for better performance
-    const [chauffeursResult, vehiculesResult, bonsResult, anomaliesResult] = await Promise.all([
-      supabase.from('chauffeurs').select('*').order('created_at', { ascending: false }),
-      supabase.from('vehicules').select('*').order('created_at', { ascending: false }),
-      supabase.from('bons').select('*').order('date', { ascending: false }),
-      supabase.from('anomalies').select('*').order('created_at', { ascending: false })
-    ]);
+      // Parallel data loading for better performance
+      const [chauffeursResult, vehiculesResult, bonsResult, anomaliesResult] = await Promise.all([
+        supabase.from('chauffeurs').select('*').order('created_at', { ascending: false }),
+        supabase.from('vehicules').select('*').order('created_at', { ascending: false }),
+        supabase.from('bons').select('*').order('date', { ascending: false }),
+        supabase.from('anomalies').select('*').order('created_at', { ascending: false })
+      ]);
 
-    // Process results with detailed logging
-    if (chauffeursResult.data) {
-      const mappedChauffeurs = chauffeursResult.data.map(mapDbChauffeurToChauffeur);
-      console.log('👥 Loaded chauffeurs:', mappedChauffeurs.length);
-      setChauffeurs(mappedChauffeurs);
+      // Process results with detailed logging
+      if (chauffeursResult.data) {
+        const mappedChauffeurs = chauffeursResult.data.map(mapDbChauffeurToChauffeur);
+        console.log('👥 Loaded chauffeurs:', mappedChauffeurs.length);
+        setChauffeurs(mappedChauffeurs);
+      }
+
+      if (vehiculesResult.data) {
+        const mappedVehicules = vehiculesResult.data.map(mapDbVehiculeToVehicule);
+        console.log('🚗 Loaded vehicules:', mappedVehicules.length);
+        setVehicules(mappedVehicules);
+      }
+
+      if (bonsResult.data) {
+        const mappedBons = bonsResult.data.map(mapDbBonToBon);
+        console.log('📋 Loaded bons:', mappedBons.length);
+        setBons(mappedBons);
+      }
+
+      if (anomaliesResult.data) {
+        const mappedAnomalies = anomaliesResult.data.map(mapDbAnomalieToAnomalie);
+        console.log('⚠️ Loaded anomalies:', mappedAnomalies.length);
+        setAnomalies(mappedAnomalies);
+      }
+
+      console.log('✅ Initial data loading complete');
+
+      // Run tests in development
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        setTimeout(() => runAnomalyDetectionTests(), 2000);
+      }
+
+    } catch (error) {
+      console.error('❌ Error loading initial data:', error);
+    } finally {
+      setLoading(false);
     }
-
-    if (vehiculesResult.data) {
-      const mappedVehicules = vehiculesResult.data.map(mapDbVehiculeToVehicule);
-      console.log('🚗 Loaded vehicules:', mappedVehicules.length);
-      setVehicules(mappedVehicules);
-    }
-
-    if (bonsResult.data) {
-      const mappedBons = bonsResult.data.map(mapDbBonToBon);
-      console.log('📋 Loaded bons:', mappedBons.length);
-      setBons(mappedBons);
-    }
-
-    if (anomaliesResult.data) {
-      const mappedAnomalies = anomaliesResult.data.map(mapDbAnomalieToAnomalie);
-      console.log('⚠️ Loaded anomalies:', mappedAnomalies.length);
-      setAnomalies(mappedAnomalies);
-    }
-
-    console.log('✅ Initial data loading complete');
-
-  } catch (error) {
-    console.error('❌ Error loading initial data:', error);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // Real-time subscriptions with better performance
   useEffect(() => {
@@ -404,7 +410,10 @@ const loadInitialData = async () => {
       setBons(prev => [newBon, ...prev]);
       
       // Detect anomalies for the new bon (only duplicates for ISSUED bons)
+      console.log('🔍 Detecting anomalies for new bon:', newBon);
       const detectedAnomalies = detectAnomalies(newBon, bons, chauffeurs, vehicules);
+      console.log('📊 Detected anomalies:', detectedAnomalies);
+      
       for (const anomalie of detectedAnomalies) {
         await supabase.from('anomalies').insert({
           type: anomalie.type,
@@ -417,12 +426,16 @@ const loadInitialData = async () => {
       }
 
       // If this bon has km_initial, check previous bon for anomalies
-      if (newBon.kmInitial !== undefined) {
+      if (newBon.kmInitial !== null && newBon.kmInitial !== undefined) {
+        console.log('⏳ New bon has km_initial, checking previous bon...');
         const previousBon = bons
           .filter(b => b.vehiculeId === newBon.vehiculeId && b.id !== newBon.id)
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
         
         if (previousBon) {
+          // Wait for database trigger to complete
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
           // Re-fetch the previous bon to get updated km_final from database trigger
           const { data: previousBonData } = await supabase
             .from('bons')
@@ -432,6 +445,8 @@ const loadInitialData = async () => {
           
           if (previousBonData) {
             const updatedPreviousBon = mapDbBonToBon(previousBonData);
+            console.log('🔍 Checking anomalies for previous bon after trigger:', updatedPreviousBon);
+            
             const previousBonAnomalies = detectAnomalies(updatedPreviousBon, [...bons, newBon], chauffeurs, vehicules);
             
             for (const anomalie of previousBonAnomalies) {
@@ -459,6 +474,12 @@ const loadInitialData = async () => {
     try {
       console.log('📝 Updating bon:', id, bonData);
       
+      // Store original bon before update
+      const originalBon = bons.find(b => b.id === id);
+      const isAddingKmInitial = originalBon && 
+        (originalBon.kmInitial === null || originalBon.kmInitial === undefined) && 
+        (bonData.kmInitial !== null && bonData.kmInitial !== undefined);
+
       const { data, error } = await supabase
         .from('bons')
         .update({
@@ -484,53 +505,69 @@ const loadInitialData = async () => {
       
       const updatedBon = mapDbBonToBon(data);
       
-      // Optimistic update - update in local state immediately
-      setBons(prev => prev.map(b => b.id === id ? updatedBon : b));
-      
-      // If km_initial was just added, check previous bon for anomalies
-      const originalBon = bons.find(b => b.id === id);
-      if (originalBon && originalBon.kmInitial === undefined && updatedBon.kmInitial !== undefined) {
-        const previousBon = bons
-          .filter(b => b.vehiculeId === updatedBon.vehiculeId && b.id !== updatedBon.id)
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+      // If km_initial was just added, we need to wait for trigger and then reload
+      if (isAddingKmInitial) {
+        console.log('⏳ km_initial added, waiting for database trigger...');
         
-        if (previousBon) {
-          // Re-fetch the previous bon to get updated km_final from database trigger
-          const { data: previousBonData } = await supabase
-            .from('bons')
-            .select('*')
-            .eq('id', previousBon.id)
-            .single();
+        // Wait for database trigger to complete (update previous bon's km_final)
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Force reload all data to get trigger updates
+        await loadInitialData();
+        
+        // Check previous bon for anomalies after trigger completes
+        if (originalBon) {
+          const previousBon = bons
+            .filter(b => b.vehiculeId === originalBon.vehiculeId && b.id !== originalBon.id)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
           
-          if (previousBonData) {
-            const refreshedPreviousBon = mapDbBonToBon(previousBonData);
-            const previousBonAnomalies = detectAnomalies(refreshedPreviousBon, [...bons.filter(b => b.id !== id), updatedBon], chauffeurs, vehicules);
+          if (previousBon) {
+            // Re-fetch the previous bon to get updated km_final from database trigger
+            const { data: previousBonData } = await supabase
+              .from('bons')
+              .select('*')
+              .eq('id', previousBon.id)
+              .single();
             
-            for (const anomalie of previousBonAnomalies) {
-              await supabase.from('anomalies').insert({
-                type: anomalie.type,
-                description: anomalie.details,
-                severite: anomalie.gravite,
-                statut: anomalie.statut,
-                bon_id: anomalie.bonId,
-                notes: anomalie.details
-              });
+            if (previousBonData) {
+              const refreshedPreviousBon = mapDbBonToBon(previousBonData);
+              console.log('🔍 Checking anomalies for previous bon after km_initial added:', refreshedPreviousBon);
+              
+              const previousBonAnomalies = detectAnomalies(refreshedPreviousBon, bons, chauffeurs, vehicules);
+              
+              // Insert new anomalies for the previous bon
+              for (const anomalie of previousBonAnomalies) {
+                await supabase.from('anomalies').insert({
+                  type: anomalie.type,
+                  description: anomalie.details,
+                  severite: anomalie.gravite,
+                  statut: anomalie.statut,
+                  bon_id: anomalie.bonId,
+                  notes: anomalie.details
+                });
+              }
+              
+              // Reload data again to get new anomalies
+              await loadInitialData();
             }
           }
         }
-      }
-      
-      // Re-run anomaly detection for the updated bon
-      const updatedBonAnomalies = detectAnomalies(updatedBon, bons.filter(b => b.id !== id), chauffeurs, vehicules);
-      for (const anomalie of updatedBonAnomalies) {
-        await supabase.from('anomalies').insert({
-          type: anomalie.type,
-          description: anomalie.details,
-          severite: anomalie.gravite,
-          statut: anomalie.statut,
-          bon_id: anomalie.bonId,
-          notes: anomalie.details
-        });
+      } else {
+        // Regular update - just optimistic update
+        setBons(prev => prev.map(b => b.id === id ? updatedBon : b));
+        
+        // Re-run anomaly detection for the updated bon
+        const updatedBonAnomalies = detectAnomalies(updatedBon, bons.filter(b => b.id !== id), chauffeurs, vehicules);
+        for (const anomalie of updatedBonAnomalies) {
+          await supabase.from('anomalies').insert({
+            type: anomalie.type,
+            description: anomalie.details,
+            severite: anomalie.gravite,
+            statut: anomalie.statut,
+            bon_id: anomalie.bonId,
+            notes: anomalie.details
+          });
+        }
       }
       
       return updatedBon;

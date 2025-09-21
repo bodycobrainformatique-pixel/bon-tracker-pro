@@ -369,13 +369,16 @@ export const useSupabaseData = () => {
       const newBon = mapDbBonToBon(data as DbBon);
       
       // Detect anomalies for the new bon (only duplicates for ISSUED bons)
+      console.log('🔍 Detecting anomalies for new bon:', newBon);
       const newAnomalies = detectAnomalies(newBon, bons, chauffeurs, vehicules);
+      console.log('📊 Detected anomalies:', newAnomalies);
       if (newAnomalies.length > 0) {
         setAnomalies(prev => [...newAnomalies, ...prev]);
       }
 
       // If this bon has km_initial, check previous bon for anomalies
-      if (newBon.kmInitial !== undefined) {
+      if (newBon.kmInitial !== null && newBon.kmInitial !== undefined) {
+        console.log('⏳ New bon has km_initial, checking previous bon...');
         const previousBon = bons
           .filter(b => b.vehiculeId === newBon.vehiculeId && b.id !== newBon.id)
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
@@ -393,6 +396,7 @@ export const useSupabaseData = () => {
           
           if (previousBonData) {
             const updatedPreviousBon = mapDbBonToBon(previousBonData);
+            console.log('🔍 Checking anomalies for previous bon after trigger:', updatedPreviousBon);
             const previousBonAnomalies = detectAnomalies(updatedPreviousBon, [...bons, newBon], chauffeurs, vehicules);
             
             if (previousBonAnomalies.length > 0) {

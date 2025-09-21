@@ -6,9 +6,9 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 
 // Helper function to determine bon lifecycle phase
 const getBonPhase = (bon: Bon): 'ISSUED' | 'IN_USE' | 'CLOSED' => {
-  if (bon.kmInitial === undefined && bon.kmFinal === undefined) {
+  if (bon.kmInitial === null || bon.kmInitial === undefined) {
     return 'ISSUED';
-  } else if (bon.kmInitial !== undefined && bon.kmFinal === undefined) {
+  } else if (bon.kmInitial !== null && bon.kmInitial !== undefined && (bon.kmFinal === null || bon.kmFinal === undefined)) {
     return 'IN_USE';
   } else {
     return 'CLOSED';
