@@ -55,10 +55,13 @@ export type AnomalieType =
   | 'km_invalide'
   | 'recul_kilometrique'
   | 'distance_incoherente'
+  | 'distance_invalide'
   | 'montant_incoherent'
   | 'bon_incomplet'
   | 'doublon_numero'
-  | 'frequence_anormale';
+  | 'frequence_anormale'
+  | 'conso_outlier_high'
+  | 'conso_outlier_med';
 
 export type AnomalieGravite = 'faible' | 'moyenne' | 'elevee' | 'critique';
 

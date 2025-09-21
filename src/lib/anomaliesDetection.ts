@@ -1,6 +1,7 @@
 // Système de détection automatique d'anomalies
 
 import { Bon, Chauffeur, Vehicule, Anomalie, AnomalieType, AnomalieGravite } from '@/types';
+import { evaluateClosedBon, cleanupConsumptionAnomalies, upsertAnomaly, NewAnomaly } from './consumptionLearning';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -49,17 +50,6 @@ export const detectAnomalies = (
 
   // For CLOSED bons only, check comprehensive anomalies including distance-based checks
   if (bonPhase === 'CLOSED') {
-    // Validation km_final < km_initial
-    if (bon.kmInitial !== undefined && bon.kmFinal !== undefined && bon.kmFinal < bon.kmInitial) {
-      anomalies.push(createAnomalie(
-        bon.id,
-        'km_invalide',
-        'critique',
-        95,
-        `Kilométrage final (${bon.kmFinal}) inférieur au kilométrage initial (${bon.kmInitial}). Différence: ${bon.kmInitial - bon.kmFinal} km.`
-      ));
-    }
-
     // Détection de recul kilométrique (for CLOSED bons only)
     if (bon.kmInitial !== undefined) {
       const vehiculeBons = existingBons
@@ -78,44 +68,19 @@ export const detectAnomalies = (
       }
     }
 
-    // Distance incohérente (only when distance is known)
-    if (bon.distance !== undefined) {
-      if (bon.distance <= 0) {
-        anomalies.push(createAnomalie(
-          bon.id,
-          'distance_incoherente',
-          'elevee',
-          80,
-          `Distance nulle ou négative: ${bon.distance} km.`
-        ));
-      } else if (bon.distance > 1000) {
-        anomalies.push(createAnomalie(
-          bon.id,
-          'distance_incoherente',
-          'moyenne',
-          60,
-          `Distance exceptionnellement élevée: ${bon.distance} km.`
-        ));
-      }
+    // Distance exceptionnellement élevée (keep this legacy rule)
+    if (bon.distance !== undefined && bon.distance > 1000) {
+      anomalies.push(createAnomalie(
+        bon.id,
+        'distance_incoherente',
+        'moyenne',
+        60,
+        `Distance exceptionnellement élevée: ${bon.distance} km.`
+      ));
     }
 
-    // Montant incohérent vs distance (only when distance is known)
-    const vehicule = vehicules.find(v => v.id === bon.vehiculeId);
-    if (bon.distance && vehicule && vehicule.coutKmReference) {
-      const coutAttendu = bon.distance * vehicule.coutKmReference;
-      const ecart = Math.abs(bon.montant - coutAttendu);
-      const pourcentageEcart = (ecart / coutAttendu) * 100;
-
-      if (pourcentageEcart > 50) {
-        anomalies.push(createAnomalie(
-          bon.id,
-          'montant_incoherent',
-          pourcentageEcart > 100 ? 'elevee' : 'moyenne',
-          Math.min(90, 40 + pourcentageEcart),
-          `Montant (${bon.montant}€) très différent du coût attendu (${coutAttendu.toFixed(2)}€). Écart: ${pourcentageEcart.toFixed(1)}%.`
-        ));
-      }
-    }
+    // Note: Removed fuel type mismatch rule as requested
+    // Note: km_invalide and distance_invalide are now handled by consumption learning module
   }
 
   // Fréquence anormale (check for all phases)
@@ -141,18 +106,42 @@ export const detectAnomalies = (
 };
 
 // New function to detect anomalies for a previous bon when it gets closed
-export const detectAnomaliesForPreviousBon = (
+export const detectAnomaliesForPreviousBon = async (
   previousBon: Bon,
   allBons: Bon[],
   chauffeurs: Chauffeur[],
   vehicules: Vehicule[]
-): Anomalie[] => {
+): Promise<Anomalie[]> => {
   // Only run full anomaly detection if the previous bon is now CLOSED
   const previousBonPhase = getBonPhase(previousBon);
   if (previousBonPhase === 'CLOSED') {
-    return detectAnomalies(previousBon, allBons, chauffeurs, vehicules);
+    // Run traditional anomaly detection
+    const traditionalAnomalies = detectAnomalies(previousBon, allBons, chauffeurs, vehicules);
+    
+    // Run consumption-based learning anomaly detection
+    await evaluateClosedBonWithUpsert(previousBon);
+    
+    return traditionalAnomalies;
   }
   return [];
+};
+
+// Helper function to evaluate closed bon and upsert anomalies
+export const evaluateClosedBonWithUpsert = async (bon: Bon): Promise<void> => {
+  try {
+    // Clean up previous consumption anomalies for this bon
+    await cleanupConsumptionAnomalies(bon.id);
+    
+    // Evaluate for new consumption anomalies
+    const newAnomalies = await evaluateClosedBon(bon);
+    
+    // Upsert each anomaly
+    for (const anomaly of newAnomalies) {
+      await upsertAnomaly(anomaly);
+    }
+  } catch (error) {
+    console.error('Error evaluating closed bon:', error);
+  }
 };
 
 const createAnomalie = (
@@ -178,10 +167,13 @@ export const getAnomalieTypeLabel = (type: AnomalieType): string => {
     km_invalide: 'Kilométrage invalide',
     recul_kilometrique: 'Recul kilométrique', 
     distance_incoherente: 'Distance incohérente',
+    distance_invalide: 'Distance invalide',
     montant_incoherent: 'Montant incohérent',
     bon_incomplet: 'Bon incomplet',
     doublon_numero: 'Doublon numéro',
-    frequence_anormale: 'Fréquence anormale'
+    frequence_anormale: 'Fréquence anormale',
+    conso_outlier_high: 'Consommation très anormale',
+    conso_outlier_med: 'Consommation anormale'
   };
   return labels[type] || type;
 };

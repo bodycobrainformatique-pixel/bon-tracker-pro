@@ -10,7 +10,7 @@ import {
   Statistics,
   BonType
 } from '@/types';
-import { detectAnomalies } from '@/lib/anomaliesDetection';
+import { detectAnomalies, detectAnomaliesForPreviousBon, evaluateClosedBonWithUpsert } from '@/lib/anomaliesDetection';
 import { runAnomalyDetectionTests } from '@/lib/testAnomaliesDetection';
 
 // Database interface mappings
@@ -123,6 +123,9 @@ const mapDbBonToBon = (db: DbBon): Bon => ({
   createdAt: db.created_at,
   updatedAt: db.updated_at
 });
+
+// Helper alias for mapping functions
+const mapBonFromDB = mapDbBonToBon;
 
 const mapDbAnomalieToAnomalie = (db: DbAnomalie): Anomalie => ({
   id: db.id,
@@ -470,111 +473,127 @@ export const useOptimizedSupabaseData = () => {
     }
   };
 
-  const updateBon = async (id: string, bonData: Partial<Bon>) => {
-    try {
-      console.log('📝 Updating bon:', id, bonData);
-      
-      // Store original bon before update
-      const originalBon = bons.find(b => b.id === id);
-      const isAddingKmInitial = originalBon && 
-        (originalBon.kmInitial === null || originalBon.kmInitial === undefined) && 
-        (bonData.kmInitial !== null && bonData.kmInitial !== undefined);
-
-      const { data, error } = await supabase
-        .from('bons')
-        .update({
-          numero: bonData.numero,
-          date: bonData.date,
-          type: bonData.type,
-          montant: bonData.montant,
-          chauffeur_id: bonData.chauffeurId,
-          vehicule_id: bonData.vehiculeId,
-          km_initial: bonData.kmInitial || null,
-          notes: bonData.notes || ''
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('❌ Error updating bon:', error);
-        throw error;
+  const updateBon = async (id: string, updates: Partial<Bon>) => {
+    // Get the original bon before update
+    const originalBon = bons.find(b => b.id === id);
+    
+    // Transform updates to match database column names
+    const dbUpdates: any = {};
+    Object.entries(updates).forEach(([key, value]) => {
+      switch (key) {
+        case 'chauffeurId':
+          dbUpdates.chauffeur_id = value;
+          break;
+        case 'vehiculeId':
+          dbUpdates.vehicule_id = value;
+          break;
+        case 'kmInitial':
+          dbUpdates.km_initial = value;
+          break;
+        case 'kmFinal':
+          dbUpdates.km_final = value;
+          break;
+        default:
+          dbUpdates[key] = value;
       }
+    });
+
+    const { data, error } = await supabase
+      .from('bons')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // If km_initial was added to this bon, it might have closed a previous bon via trigger
+    if (updates.kmInitial !== undefined && originalBon && !originalBon.kmInitial) {
+      console.log('🔄 km_initial added to bon, invalidating queries and checking for closed previous bon...');
       
-      console.log('✅ Bon updated successfully:', data);
+      // Wait for trigger to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      const updatedBon = mapDbBonToBon(data);
+      // Reload all data to get trigger updates
+      await loadInitialData();
       
-      // If km_initial was just added, we need to wait for trigger and then reload
-      if (isAddingKmInitial) {
-        console.log('⏳ km_initial added, waiting for database trigger...');
+      // Get updated bon data to find the previous bon that may have been closed
+      const { data: updatedBons } = await supabase
+        .from('bons')
+        .select('*')
+        .eq('vehicule_id', originalBon.vehiculeId)
+        .order('date', { ascending: false })
+        .order('numero', { ascending: false });
+      
+      if (updatedBons && updatedBons.length > 0) {
+        // Find the updated current bon
+        const updatedCurrentBon = updatedBons.find(b => b.id === id);
         
-        // Wait for database trigger to complete (update previous bon's km_final)
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Force reload all data to get trigger updates
-        await loadInitialData();
-        
-        // Check previous bon for anomalies after trigger completes
-        if (originalBon) {
-          const previousBon = bons
-            .filter(b => b.vehiculeId === originalBon.vehiculeId && b.id !== originalBon.id)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        if (updatedCurrentBon) {
+          // Find the previous bon (most recent before current)
+          const previousBon = updatedBons.find(b => 
+            b.id !== id && 
+            (new Date(b.date) < new Date(updatedCurrentBon.date) || 
+             (b.date === updatedCurrentBon.date && b.numero < updatedCurrentBon.numero))
+          );
           
-          if (previousBon) {
-            // Re-fetch the previous bon to get updated km_final from database trigger
-            const { data: previousBonData } = await supabase
-              .from('bons')
-              .select('*')
-              .eq('id', previousBon.id)
-              .single();
+          if (previousBon && previousBon.km_final && previousBon.km_initial) {
+            console.log('🎯 Found previous bon that was closed by trigger, running anomaly detection...');
             
-            if (previousBonData) {
-              const refreshedPreviousBon = mapDbBonToBon(previousBonData);
-              console.log('🔍 Checking anomalies for previous bon after km_initial added:', refreshedPreviousBon);
-              
-              const previousBonAnomalies = detectAnomalies(refreshedPreviousBon, bons, chauffeurs, vehicules);
-              
-              // Insert new anomalies for the previous bon
-              for (const anomalie of previousBonAnomalies) {
-                await supabase.from('anomalies').insert({
-                  type: anomalie.type,
-                  description: anomalie.details,
-                  severite: anomalie.gravite,
-                  statut: anomalie.statut,
-                  bon_id: anomalie.bonId,
-                  notes: anomalie.details
-                });
-              }
-              
-              // Reload data again to get new anomalies
-              await loadInitialData();
-            }
+            // Convert to frontend format and run anomaly detection
+            const mappedPreviousBon: Bon = {
+              id: previousBon.id,
+              numero: previousBon.numero,
+              date: previousBon.date,
+              type: previousBon.type as BonType,
+              montant: Number(previousBon.montant),
+              chauffeurId: previousBon.chauffeur_id,
+              vehiculeId: previousBon.vehicule_id,
+              kmInitial: previousBon.km_initial ? Number(previousBon.km_initial) : undefined,
+              kmFinal: previousBon.km_final ? Number(previousBon.km_final) : undefined,
+              distance: previousBon.distance ? Number(previousBon.distance) : undefined,
+              notes: previousBon.notes,
+              createdAt: previousBon.created_at,
+              updatedAt: previousBon.updated_at
+            };
+            
+            // Map all bons for context
+            const allMappedBons: Bon[] = updatedBons.map(mapBonFromDB);
+            
+            // Run traditional anomaly detection for the previous bon
+            await detectAnomaliesForPreviousBon(mappedPreviousBon, allMappedBons, chauffeurs, vehicules);
+            
+            // Run consumption-based anomaly detection for the previous bon
+            await evaluateClosedBonWithUpsert(mappedPreviousBon);
+            
+            // Final refresh to show any new anomalies
+            await loadInitialData();
           }
         }
-      } else {
-        // Regular update - just optimistic update
-        setBons(prev => prev.map(b => b.id === id ? updatedBon : b));
-        
-        // Re-run anomaly detection for the updated bon
-        const updatedBonAnomalies = detectAnomalies(updatedBon, bons.filter(b => b.id !== id), chauffeurs, vehicules);
-        for (const anomalie of updatedBonAnomalies) {
-          await supabase.from('anomalies').insert({
-            type: anomalie.type,
-            description: anomalie.details,
-            severite: anomalie.gravite,
-            statut: anomalie.statut,
-            bon_id: anomalie.bonId,
-            notes: anomalie.details
-          });
-        }
       }
-      
-      return updatedBon;
-    } catch (error) {
-      console.error('❌ Erreur mise à jour bon:', error);
-      throw error;
     }
+
+    // If km_final was updated (bon becomes CLOSED), evaluate consumption anomalies
+    if (updates.kmFinal !== undefined && originalBon && originalBon.kmInitial) {
+      console.log('🎯 km_final updated, evaluating consumption anomalies...');
+      
+      const updatedBon: Bon = {
+        ...originalBon,
+        ...updates,
+        kmFinal: updates.kmFinal,
+        distance: updates.kmFinal && originalBon.kmInitial 
+          ? Math.max(0, updates.kmFinal - originalBon.kmInitial) 
+          : originalBon.distance
+      };
+      
+      // Run consumption-based anomaly detection
+      await evaluateClosedBonWithUpsert(updatedBon);
+      
+      // Refresh anomalies
+      await loadInitialData();
+    }
+
+    return mapBonFromDB(data);
   };
 
   const deleteBon = async (id: string) => {
