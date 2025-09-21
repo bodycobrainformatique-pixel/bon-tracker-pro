@@ -83,6 +83,13 @@ export type Database = {
             referencedRelation: "vehicules"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "anomalies_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "vehicules_current_odometer"
+            referencedColumns: ["vehicule_id"]
+          },
         ]
       }
       bons: {
@@ -162,6 +169,13 @@ export type Database = {
             referencedRelation: "vehicules"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "bons_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "vehicules_current_odometer"
+            referencedColumns: ["vehicule_id"]
+          },
         ]
       }
       carburant_parameters: {
@@ -229,6 +243,382 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      maintenance_events: {
+        Row: {
+          commentaire: string | null
+          cout_main_oeuvre: number | null
+          cout_pieces: number | null
+          cout_total: number | null
+          created_at: string
+          date_realisation: string
+          fichiers: Json | null
+          id: string
+          odometre_km: number
+          pieces_utilisees: Json | null
+          task_id: string
+          updated_at: string
+          vehicule_id: string
+          work_order_id: string
+        }
+        Insert: {
+          commentaire?: string | null
+          cout_main_oeuvre?: number | null
+          cout_pieces?: number | null
+          cout_total?: number | null
+          created_at?: string
+          date_realisation: string
+          fichiers?: Json | null
+          id?: string
+          odometre_km: number
+          pieces_utilisees?: Json | null
+          task_id: string
+          updated_at?: string
+          vehicule_id: string
+          work_order_id: string
+        }
+        Update: {
+          commentaire?: string | null
+          cout_main_oeuvre?: number | null
+          cout_pieces?: number | null
+          cout_total?: number | null
+          created_at?: string
+          date_realisation?: string
+          fichiers?: Json | null
+          id?: string
+          odometre_km?: number
+          pieces_utilisees?: Json | null
+          task_id?: string
+          updated_at?: string
+          vehicule_id?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_events_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_events_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "v_vehicule_km_current"
+            referencedColumns: ["vehicule_id"]
+          },
+          {
+            foreignKeyName: "maintenance_events_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "vehicules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_events_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "vehicules_current_odometer"
+            referencedColumns: ["vehicule_id"]
+          },
+          {
+            foreignKeyName: "maintenance_events_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_plans: {
+        Row: {
+          created_at: string
+          id: string
+          last_done_date: string | null
+          last_done_km: number | null
+          next_due_date: string | null
+          next_due_km: number | null
+          start_date: string
+          start_km: number
+          statut: string
+          task_id: string
+          updated_at: string
+          vehicule_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_done_date?: string | null
+          last_done_km?: number | null
+          next_due_date?: string | null
+          next_due_km?: number | null
+          start_date: string
+          start_km: number
+          statut?: string
+          task_id: string
+          updated_at?: string
+          vehicule_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_done_date?: string | null
+          last_done_km?: number | null
+          next_due_date?: string | null
+          next_due_km?: number | null
+          start_date?: string
+          start_km?: number
+          statut?: string
+          task_id?: string
+          updated_at?: string
+          vehicule_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_plans_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_plans_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "v_vehicule_km_current"
+            referencedColumns: ["vehicule_id"]
+          },
+          {
+            foreignKeyName: "maintenance_plans_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "vehicules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_plans_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "vehicules_current_odometer"
+            referencedColumns: ["vehicule_id"]
+          },
+        ]
+      }
+      maintenance_tasks: {
+        Row: {
+          actif: boolean
+          code: string
+          created_at: string
+          duree_estimee_min: number | null
+          id: string
+          interval_jours: number | null
+          interval_km: number | null
+          libelle: string
+          pieces_defaut: Json | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          code: string
+          created_at?: string
+          duree_estimee_min?: number | null
+          id?: string
+          interval_jours?: number | null
+          interval_km?: number | null
+          libelle: string
+          pieces_defaut?: Json | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          code?: string
+          created_at?: string
+          duree_estimee_min?: number | null
+          id?: string
+          interval_jours?: number | null
+          interval_km?: number | null
+          libelle?: string
+          pieces_defaut?: Json | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      maintenance_work_orders: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          due_km: number | null
+          id: string
+          notes: string | null
+          plan_id: string | null
+          priorite: string
+          statut: string
+          task_id: string
+          updated_at: string
+          vehicule_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          due_km?: number | null
+          id?: string
+          notes?: string | null
+          plan_id?: string | null
+          priorite?: string
+          statut?: string
+          task_id: string
+          updated_at?: string
+          vehicule_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          due_km?: number | null
+          id?: string
+          notes?: string | null
+          plan_id?: string | null
+          priorite?: string
+          statut?: string
+          task_id?: string
+          updated_at?: string
+          vehicule_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_work_orders_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_work_orders_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_work_orders_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "v_vehicule_km_current"
+            referencedColumns: ["vehicule_id"]
+          },
+          {
+            foreignKeyName: "maintenance_work_orders_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "vehicules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_work_orders_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "vehicules_current_odometer"
+            referencedColumns: ["vehicule_id"]
+          },
+        ]
+      }
+      parts_catalog: {
+        Row: {
+          created_at: string
+          id: string
+          nom: string
+          prix: number | null
+          sku: string
+          unite: string
+          updated_at: string
+          vendor_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nom: string
+          prix?: number | null
+          sku: string
+          unite?: string
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nom?: string
+          prix?: number | null
+          sku?: string
+          unite?: string
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parts_catalog_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parts_usage: {
+        Row: {
+          created_at: string
+          id: string
+          part_id: string
+          prix_unitaire: number | null
+          quantite: number
+          total_cost: number | null
+          updated_at: string
+          work_order_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          part_id: string
+          prix_unitaire?: number | null
+          quantite: number
+          total_cost?: number | null
+          updated_at?: string
+          work_order_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          part_id?: string
+          prix_unitaire?: number | null
+          quantite?: number
+          total_cost?: number | null
+          updated_at?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parts_usage_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parts_usage_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -314,6 +704,39 @@ export type Database = {
         }
         Relationships: []
       }
+      vendors: {
+        Row: {
+          adresse: string | null
+          contact: string | null
+          created_at: string
+          email: string | null
+          id: string
+          nom: string
+          telephone: string | null
+          updated_at: string
+        }
+        Insert: {
+          adresse?: string | null
+          contact?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nom: string
+          telephone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adresse?: string | null
+          contact?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nom?: string
+          telephone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       v_vehicule_daily_stats: {
@@ -341,9 +764,24 @@ export type Database = {
             referencedRelation: "vehicules"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "bons_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "vehicules_current_odometer"
+            referencedColumns: ["vehicule_id"]
+          },
         ]
       }
       v_vehicule_km_current: {
+        Row: {
+          current_km: number | null
+          immatriculation: string | null
+          vehicule_id: string | null
+        }
+        Relationships: []
+      }
+      vehicules_current_odometer: {
         Row: {
           current_km: number | null
           immatriculation: string | null
@@ -356,6 +794,14 @@ export type Database = {
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      maintenance_check_due: {
+        Args: { vehicule_id: string }
+        Returns: undefined
+      }
+      maintenance_recompute_plan: {
+        Args: { plan_id: string }
+        Returns: undefined
       }
     }
     Enums: {

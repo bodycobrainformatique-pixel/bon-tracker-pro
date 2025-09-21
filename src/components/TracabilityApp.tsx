@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { MaintenanceTab } from './tabs/MaintenanceTab';
 import { useOptimizedSupabaseData } from '@/hooks/useOptimizedSupabaseData';
 import { BonFilters, Bon, Chauffeur, Vehicule, Anomalie } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -185,6 +186,13 @@ export const TracabilityApp = () => {
               chauffeurs={chauffeurs}
               bons={bons}
               anomalies={anomalies}
+            />
+          </TabsContent>
+
+          <TabsContent value="maintenance" className="space-y-6">
+            <MaintenanceTab
+              vehicules={vehicules}
+              chauffeurs={chauffeurs}
             />
           </TabsContent>
 

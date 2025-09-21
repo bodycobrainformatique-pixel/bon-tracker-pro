@@ -34,7 +34,8 @@ import {
   BarChart3,
   Wifi,
   WifiOff,
-  FileDown
+  FileDown,
+  Wrench
 } from 'lucide-react';
 
 interface ProfessionalHeaderProps {
@@ -144,6 +145,7 @@ export const ProfessionalHeader = ({
     { id: 'bons', label: 'Bons', icon: FileText },
     { id: 'chauffeurs', label: 'Chauffeurs', icon: Users },
     { id: 'vehicules', label: 'Véhicules', icon: Truck },
+    { id: 'maintenance', label: 'Maintenance', icon: Wrench },
     { id: 'anomalies', label: 'Anomalies', icon: AlertTriangle },
     { id: 'rapports', label: 'Rapports', icon: BarChart3 },
     { id: 'parametres', label: 'Paramètres', icon: Settings },
