@@ -12,11 +12,11 @@ import { VehiculesTab } from './tabs/VehiculesTab';
 import { AnomaliesTab } from './tabs/AnomaliesTab';
 import { RapportsTab } from './tabs/RapportsTab';
 import { ParametresTab } from './tabs/ParametresTab';
-import { StatsBar } from './StatsBar';
+import { EnhancedHeader } from './EnhancedHeader';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
-import { Truck, Users, FileText, AlertTriangle, LogOut, Save, Settings } from 'lucide-react';
+import { Truck, Users, FileText, AlertTriangle, Settings } from 'lucide-react';
 
 export const TracabilityApp = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -130,50 +130,16 @@ export const TracabilityApp = () => {
   }
 
   return (
-      <div className="min-h-screen bg-background">
-        {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="bg-primary rounded-lg p-2">
-                <Truck className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">
-                  Traçabilité des Bons
-                </h1>
-                <p className="text-muted-foreground">
-                  Connecté en tant que: {user?.email}
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <StatsBar statistics={statistics} />
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleSaveToDatabase}
-                  disabled={isSaving}
-                  variant="default"
-                  size="sm"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
-                </Button>
-                <Button
-                  onClick={handleSignOut}
-                  variant="outline"
-                  size="sm"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Déconnexion
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background">
+      {/* Enhanced Header */}
+      <EnhancedHeader 
+        user={user}
+        statistics={statistics}
+        isSaving={isSaving}
+        onSave={handleSaveToDatabase}
+        onSignOut={handleSignOut}
+        anomaliesCount={anomalies.filter(a => a.statut === 'a_verifier').length}
+      />
 
       {/* Navigation Tabs */}
       <div className="container mx-auto px-4 py-6">
