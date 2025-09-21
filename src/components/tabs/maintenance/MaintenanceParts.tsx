@@ -19,9 +19,24 @@ import { Vendor, PartsCatalog } from '@/types/maintenance';
 interface MaintenancePartsProps {
   vendors: Vendor[];
   parts: PartsCatalog[];
+  createVendor: (vendorData: any) => Promise<any>;
+  updateVendor: (id: string, vendorData: any) => Promise<any>;
+  deleteVendor: (id: string) => Promise<void>;
+  createPart: (partData: any) => Promise<any>;
+  updatePart: (id: string, partData: any) => Promise<any>;
+  deletePart: (id: string) => Promise<void>;
 }
 
-export const MaintenanceParts = ({ vendors, parts }: MaintenancePartsProps) => {
+export const MaintenanceParts = ({ 
+  vendors, 
+  parts, 
+  createVendor, 
+  updateVendor, 
+  deleteVendor,
+  createPart,
+  updatePart,
+  deletePart
+}: MaintenancePartsProps) => {
   const [showVendorDialog, setShowVendorDialog] = useState(false);
   const [showPartDialog, setShowPartDialog] = useState(false);
   const [vendorFormData, setVendorFormData] = useState({
@@ -40,29 +55,38 @@ export const MaintenanceParts = ({ vendors, parts }: MaintenancePartsProps) => {
   });
 
   const handleCreateVendor = async () => {
-    // TODO: Implement vendor creation
-    console.log('Creating vendor:', vendorFormData);
-    setShowVendorDialog(false);
-    setVendorFormData({
-      nom: '',
-      contact: '',
-      telephone: '',
-      email: '',
-      adresse: ''
-    });
+    try {
+      await createVendor(vendorFormData);
+      setVendorFormData({
+        nom: '',
+        contact: '',
+        telephone: '',
+        email: '',
+        adresse: ''
+      });
+      setShowVendorDialog(false);
+    } catch (error) {
+      console.error('Error creating vendor:', error);
+    }
   };
 
   const handleCreatePart = async () => {
-    // TODO: Implement part creation
-    console.log('Creating part:', partFormData);
-    setShowPartDialog(false);
-    setPartFormData({
-      sku: '',
-      nom: '',
-      unite: 'pcs',
-      prix: '',
-      vendor_id: ''
-    });
+    try {
+      await createPart({
+        ...partFormData,
+        prix: partFormData.prix ? parseFloat(partFormData.prix) : null
+      });
+      setPartFormData({
+        sku: '',
+        nom: '',
+        unite: 'pcs',
+        prix: '',
+        vendor_id: ''
+      });
+      setShowPartDialog(false);
+    } catch (error) {
+      console.error('Error creating part:', error);
+    }
   };
 
   return (

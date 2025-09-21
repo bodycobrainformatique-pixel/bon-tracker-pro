@@ -315,6 +315,351 @@ export const useMaintenanceData = () => {
     }
   };
 
+  // Tasks CRUD
+  const updateTask = async (id: string, taskData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('maintenance_tasks')
+        .update({
+          ...taskData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setTasks(prev => prev.map(task => task.id === id ? data as MaintenanceTask : task));
+      queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+      
+      toast({
+        title: "Succès",
+        description: "Tâche mise à jour avec succès",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour la tâche",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const deleteTask = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('maintenance_tasks')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setTasks(prev => prev.filter(task => task.id !== id));
+      queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+      
+      toast({
+        title: "Succès",
+        description: "Tâche supprimée avec succès",
+      });
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer la tâche",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  // Vendors CRUD
+  const createVendor = async (vendorData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('vendors')
+        .insert(vendorData)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setVendors(prev => [...prev, data]);
+      queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+      
+      toast({
+        title: "Succès",
+        description: "Prestataire créé avec succès",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Error creating vendor:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer le prestataire",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const updateVendor = async (id: string, vendorData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('vendors')
+        .update({
+          ...vendorData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setVendors(prev => prev.map(vendor => vendor.id === id ? data : vendor));
+      queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+      
+      toast({
+        title: "Succès",
+        description: "Prestataire mis à jour avec succès",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Error updating vendor:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le prestataire",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const deleteVendor = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('vendors')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setVendors(prev => prev.filter(vendor => vendor.id !== id));
+      queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+      
+      toast({
+        title: "Succès",
+        description: "Prestataire supprimé avec succès",
+      });
+    } catch (error) {
+      console.error('Error deleting vendor:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le prestataire",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  // Parts CRUD
+  const createPart = async (partData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('parts_catalog')
+        .insert(partData)
+        .select(`
+          *,
+          vendor:vendors(*)
+        `)
+        .single();
+
+      if (error) throw error;
+
+      setParts(prev => [...prev, data]);
+      queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+      
+      toast({
+        title: "Succès",
+        description: "Pièce créée avec succès",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Error creating part:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer la pièce",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const updatePart = async (id: string, partData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('parts_catalog')
+        .update({
+          ...partData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select(`
+          *,
+          vendor:vendors(*)
+        `)
+        .single();
+
+      if (error) throw error;
+
+      setParts(prev => prev.map(part => part.id === id ? data : part));
+      queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+      
+      toast({
+        title: "Succès",
+        description: "Pièce mise à jour avec succès",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Error updating part:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour la pièce",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const deletePart = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('parts_catalog')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setParts(prev => prev.filter(part => part.id !== id));
+      queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+      
+      toast({
+        title: "Succès",
+        description: "Pièce supprimée avec succès",
+      });
+    } catch (error) {
+      console.error('Error deleting part:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer la pièce",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  // Plans CRUD  
+  const updatePlan = async (id: string, planData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('maintenance_plans')
+        .update({
+          ...planData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select(`
+          *,
+          vehicule:vehicules(id, immatriculation, marque, modele),
+          task:maintenance_tasks(*)
+        `)
+        .single();
+
+      if (error) throw error;
+
+      setPlans(prev => prev.map(plan => plan.id === id ? data as MaintenancePlan : plan));
+      queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+      
+      toast({
+        title: "Succès",
+        description: "Plan mis à jour avec succès",
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Error updating plan:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le plan",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const deletePlan = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('maintenance_plans')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setPlans(prev => prev.filter(plan => plan.id !== id));
+      queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+      
+      toast({
+        title: "Succès",
+        description: "Plan supprimé avec succès",
+      });
+    } catch (error) {
+      console.error('Error deleting plan:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le plan",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const deleteWorkOrder = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('maintenance_work_orders')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setWorkOrders(prev => prev.filter(wo => wo.id !== id));
+      queryClient.invalidateQueries({ queryKey: ['maintenance'] });
+      
+      toast({
+        title: "Succès",
+        description: "Ordre de travail supprimé avec succès",
+      });
+    } catch (error) {
+      console.error('Error deleting work order:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer l'ordre de travail",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   // Utility functions
   const getMaintenanceKPIs = useCallback((): MaintenanceKPIs => {
     const now = new Date();
@@ -390,8 +735,19 @@ export const useMaintenanceData = () => {
     
     // CRUD operations
     createTask,
+    updateTask,
+    deleteTask,
+    createVendor,
+    updateVendor,
+    deleteVendor,
+    createPart,
+    updatePart,
+    deletePart,
     createPlan,
+    updatePlan,
+    deletePlan,
     createWorkOrder,
+    deleteWorkOrder,
     completeWorkOrder,
     updateWorkOrderStatus,
     

@@ -21,7 +21,7 @@ import {
   Wrench
 } from 'lucide-react';
 import { Vehicule } from '@/types';
-import { MaintenanceWorkOrder, MaintenanceTask, MaintenanceFilters } from '@/types/maintenance';
+import { MaintenanceFilters, MaintenanceWorkOrder, MaintenanceTask, PartsCatalog } from '@/types/maintenance';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -30,18 +30,24 @@ interface MaintenanceWorkOrdersProps {
   workOrders: MaintenanceWorkOrder[];
   tasks: MaintenanceTask[];
   vehicules: Vehicule[];
+  parts: PartsCatalog[];
   getFilteredWorkOrders: (filters: MaintenanceFilters) => MaintenanceWorkOrder[];
-  createWorkOrder: (workOrder: any) => Promise<any>;
-  updateWorkOrderStatus: (id: string, statut: MaintenanceWorkOrder['statut']) => Promise<any>;
+  createWorkOrder: (workOrderData: any) => Promise<any>;
+  updateWorkOrderStatus: (id: string, statut: string) => Promise<any>;
+  completeWorkOrder: (eventData: any) => Promise<any>;
+  deleteWorkOrder: (id: string) => Promise<void>;
 }
 
 export const MaintenanceWorkOrders = ({ 
   workOrders,
   tasks,
   vehicules,
+  parts,
   getFilteredWorkOrders,
   createWorkOrder,
-  updateWorkOrderStatus
+  updateWorkOrderStatus,
+  completeWorkOrder,
+  deleteWorkOrder
 }: MaintenanceWorkOrdersProps) => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [filters, setFilters] = useState<MaintenanceFilters>({

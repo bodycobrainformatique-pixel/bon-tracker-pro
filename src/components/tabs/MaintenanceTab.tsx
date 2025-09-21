@@ -66,8 +66,15 @@ export const MaintenanceTab = ({ vehicules, chauffeurs }: MaintenanceTabProps) =
 
         <TabsContent value="work-orders">
           <MaintenanceWorkOrders 
-            {...maintenanceData}
+            workOrders={maintenanceData.workOrders}
+            tasks={maintenanceData.tasks}
             vehicules={vehicules}
+            parts={maintenanceData.parts}
+            getFilteredWorkOrders={maintenanceData.getFilteredWorkOrders}
+            createWorkOrder={maintenanceData.createWorkOrder}
+            updateWorkOrderStatus={maintenanceData.updateWorkOrderStatus}
+            completeWorkOrder={(eventData) => maintenanceData.completeWorkOrder(eventData.work_order_id, eventData)}
+            deleteWorkOrder={maintenanceData.deleteWorkOrder}
           />
         </TabsContent>
 
@@ -80,7 +87,14 @@ export const MaintenanceTab = ({ vehicules, chauffeurs }: MaintenanceTabProps) =
 
         <TabsContent value="parts">
           <MaintenanceParts 
-            {...maintenanceData}
+            vendors={maintenanceData.vendors}
+            parts={maintenanceData.parts}
+            createVendor={maintenanceData.createVendor}
+            updateVendor={maintenanceData.updateVendor}
+            deleteVendor={maintenanceData.deleteVendor}
+            createPart={maintenanceData.createPart}
+            updatePart={maintenanceData.updatePart}
+            deletePart={maintenanceData.deletePart}
           />
         </TabsContent>
 
