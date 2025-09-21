@@ -120,7 +120,7 @@ export default function AdminDashboard() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Administration - Traçabilité des Bons</h1>
+              <h1 className="text-2xl font-bold text-foreground">Administration - Gestion de la Parc Automobile</h1>
               <p className="text-muted-foreground">
                 Connecté en tant que: {user?.email}
               </p>

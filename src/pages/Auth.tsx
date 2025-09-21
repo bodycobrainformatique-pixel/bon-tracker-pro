@@ -112,9 +112,9 @@ export default function Auth() {
               <Truck className="h-8 w-8 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Traçabilité des Bons</CardTitle>
+          <CardTitle className="text-2xl">Gestion de la Parc Automobile</CardTitle>
           <CardDescription>
-            Connectez-vous pour accéder à l'application de gestion des bons
+            Connectez-vous pour accéder au système de gestion du parc automobile
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

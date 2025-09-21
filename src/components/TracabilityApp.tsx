@@ -12,7 +12,7 @@ import { VehiculesTab } from './tabs/VehiculesTab';
 import { AnomaliesTab } from './tabs/AnomaliesTab';
 import { RapportsTab } from './tabs/RapportsTab';
 import { ParametresTab } from './tabs/ParametresTab';
-import { EnhancedHeader } from './EnhancedHeader';
+import { ProfessionalHeader } from './ProfessionalHeader';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -131,51 +131,22 @@ export const TracabilityApp = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Enhanced Header */}
-      <EnhancedHeader 
+      {/* Professional Header */}
+      <ProfessionalHeader 
         user={user}
         statistics={statistics}
         isSaving={isSaving}
         onSave={handleSaveToDatabase}
         onSignOut={handleSignOut}
         anomaliesCount={anomalies.filter(a => a.statut === 'a_verifier').length}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onAnomaliesClick={() => setActiveTab('anomalies')}
       />
 
-      {/* Navigation Tabs */}
+      {/* Content Area */}
       <div className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 lg:w-[900px]">
-            <TabsTrigger value="bons" className="flex items-center space-x-2">
-              <FileText className="h-4 w-4" />
-              <span>Bons</span>
-            </TabsTrigger>
-            <TabsTrigger value="chauffeurs" className="flex items-center space-x-2">
-              <Users className="h-4 w-4" />
-              <span>Chauffeurs</span>
-            </TabsTrigger>
-            <TabsTrigger value="vehicules" className="flex items-center space-x-2">
-              <Truck className="h-4 w-4" />
-              <span>Véhicules</span>
-            </TabsTrigger>
-            <TabsTrigger value="anomalies" className="flex items-center space-x-2">
-              <AlertTriangle className="h-4 w-4" />
-              <span>Anomalies</span>
-              {anomalies.filter(a => a.statut === 'a_verifier').length > 0 && (
-                <span className="ml-1 bg-destructive text-destructive-foreground text-xs px-1.5 py-0.5 rounded-full">
-                  {anomalies.filter(a => a.statut === 'a_verifier').length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="rapports" className="flex items-center space-x-2">
-              <FileText className="h-4 w-4" />
-              <span>Rapports</span>
-            </TabsTrigger>
-            <TabsTrigger value="parametres" className="flex items-center space-x-2">
-              <Settings className="h-4 w-4" />
-              <span>Paramètres</span>
-            </TabsTrigger>
-          </TabsList>
-
           <TabsContent value="bons" className="space-y-6">
             <BonsTab
               bons={filteredBons}

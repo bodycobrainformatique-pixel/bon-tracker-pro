@@ -108,7 +108,7 @@ export default function AdminAuth() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Administration</CardTitle>
           <CardDescription>
-            Accédez à l'interface d'administration pour gérer la traçabilité des bons
+            Accédez à l'interface d'administration pour gérer le parc automobile
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

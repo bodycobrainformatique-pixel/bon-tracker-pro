@@ -117,7 +117,26 @@ All colors MUST be HSL.
   }
 }
 
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
 @layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;     /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Safari and Chrome */
+  }
+  
   .supports-backdrop-blur\:bg-card\/60 {
     @supports (backdrop-filter: blur(0)) {
       background-color: hsl(var(--card) / 0.6);

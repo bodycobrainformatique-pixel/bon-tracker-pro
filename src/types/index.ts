@@ -1,4 +1,4 @@
-// Types pour l'application de traçabilité des bons
+// Types pour l'application de gestion du parc automobile
 
 export type BonType = 'gasoil' | 'essence' | 'gasoil50';
 
