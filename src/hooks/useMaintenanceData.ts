@@ -366,10 +366,10 @@ export const useMaintenanceData = () => {
 
   const getFilteredWorkOrders = useCallback((filters: MaintenanceFilters): MaintenanceWorkOrder[] => {
     return workOrders.filter(workOrder => {
-      if (filters.vehicule_id && workOrder.vehicule_id !== filters.vehicule_id) return false;
-      if (filters.priorite && workOrder.priorite !== filters.priorite) return false;
-      if (filters.statut && workOrder.statut !== filters.statut) return false;
-      if (filters.assigned_to && !workOrder.assigned_to?.includes(filters.assigned_to)) return false;
+      if (filters.vehicule_id && filters.vehicule_id !== 'all' && workOrder.vehicule_id !== filters.vehicule_id) return false;
+      if (filters.priorite && filters.priorite !== 'all' && workOrder.priorite !== filters.priorite) return false;
+      if (filters.statut && filters.statut !== 'all' && workOrder.statut !== filters.statut) return false;
+      if (filters.assigned_to && filters.assigned_to !== 'all' && !workOrder.assigned_to?.includes(filters.assigned_to)) return false;
       if (filters.date_from && workOrder.due_date && workOrder.due_date < filters.date_from) return false;
       if (filters.date_to && workOrder.due_date && workOrder.due_date > filters.date_to) return false;
       

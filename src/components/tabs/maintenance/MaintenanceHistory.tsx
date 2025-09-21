@@ -27,13 +27,13 @@ interface MaintenanceHistoryProps {
 
 export const MaintenanceHistory = ({ events, vehicules }: MaintenanceHistoryProps) => {
   const [filters, setFilters] = useState({
-    vehicule_id: '',
+    vehicule_id: 'all',
     date_from: undefined as Date | undefined,
     date_to: undefined as Date | undefined
   });
 
   const filteredEvents = events.filter(event => {
-    if (filters.vehicule_id && event.vehicule_id !== filters.vehicule_id) return false;
+    if (filters.vehicule_id !== 'all' && event.vehicule_id !== filters.vehicule_id) return false;
     if (filters.date_from && event.date_realisation < format(filters.date_from, 'yyyy-MM-dd')) return false;
     if (filters.date_to && event.date_realisation > format(filters.date_to, 'yyyy-MM-dd')) return false;
     return true;
@@ -68,7 +68,7 @@ export const MaintenanceHistory = ({ events, vehicules }: MaintenanceHistoryProp
                 <SelectValue placeholder="Tous les véhicules" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tous les véhicules</SelectItem>
+                <SelectItem value="all">Tous les véhicules</SelectItem>
                 {vehicules.map((vehicule) => (
                   <SelectItem key={vehicule.id} value={vehicule.id}>
                     {vehicule.immatriculation} - {vehicule.marque} {vehicule.modele}

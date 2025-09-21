@@ -44,7 +44,11 @@ export const MaintenanceWorkOrders = ({
   updateWorkOrderStatus
 }: MaintenanceWorkOrdersProps) => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [filters, setFilters] = useState<MaintenanceFilters>({});
+  const [filters, setFilters] = useState<MaintenanceFilters>({
+    vehicule_id: 'all',
+    priorite: 'all',
+    statut: 'all'
+  });
   const [formData, setFormData] = useState<{
     vehicule_id: string;
     task_id: string;
@@ -282,7 +286,7 @@ export const MaintenanceWorkOrders = ({
                 <SelectValue placeholder="Tous les véhicules" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tous les véhicules</SelectItem>
+                <SelectItem value="all">Tous les véhicules</SelectItem>
                 {vehicules.map((vehicule) => (
                   <SelectItem key={vehicule.id} value={vehicule.id}>
                     {vehicule.immatriculation} - {vehicule.marque} {vehicule.modele}
@@ -300,7 +304,7 @@ export const MaintenanceWorkOrders = ({
                 <SelectValue placeholder="Tous statuts" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Tous statuts</SelectItem>
+                <SelectItem value="all">Tous statuts</SelectItem>
                 <SelectItem value="ouvert">Ouvert</SelectItem>
                 <SelectItem value="en_cours">En cours</SelectItem>
                 <SelectItem value="termine">Terminé</SelectItem>
@@ -317,7 +321,7 @@ export const MaintenanceWorkOrders = ({
                 <SelectValue placeholder="Toutes priorités" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Toutes priorités</SelectItem>
+                <SelectItem value="all">Toutes priorités</SelectItem>
                 <SelectItem value="haute">Haute</SelectItem>
                 <SelectItem value="moyenne">Moyenne</SelectItem>
                 <SelectItem value="basse">Basse</SelectItem>
