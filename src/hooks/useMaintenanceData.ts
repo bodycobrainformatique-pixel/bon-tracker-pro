@@ -203,11 +203,21 @@ export const useMaintenanceData = () => {
     }
   };
 
-  const createPlan = async (plan: Omit<MaintenancePlan, 'id' | 'created_at' | 'updated_at' | 'vehicule' | 'task'>) => {
+  const createPlan = async (plan: any) => {
     try {
+      // Only insert columns that exist in maintenance_plans table
+      const planData = {
+        vehicule_id: plan.vehicule_id,
+        task_id: plan.task_id,
+        start_date: plan.start_date,
+        start_km: plan.start_km,
+        statut: plan.statut
+        // Note: interval_km and interval_jours are stored in maintenance_tasks, not maintenance_plans
+      };
+
       const { data, error } = await supabase
         .from('maintenance_plans')
-        .insert([plan])
+        .insert([planData])
         .select()
         .single();
 
