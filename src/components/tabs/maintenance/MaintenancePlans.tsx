@@ -28,15 +28,21 @@ interface MaintenancePlansProps {
   tasks: MaintenanceTask[];
   vehicules: Vehicule[];
   createPlan: (plan: any) => Promise<any>;
+  createWorkOrder?: (workOrder: any) => Promise<any>;
+  updatePlan?: (id: string, updates: any) => Promise<any>;
 }
 
 export const MaintenancePlans = ({ 
   plans, 
   tasks,
   vehicules,
-  createPlan
+  createPlan,
+  createWorkOrder,
+  updatePlan
 }: MaintenancePlansProps) => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<MaintenancePlan | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [formData, setFormData] = useState<{
@@ -157,6 +163,59 @@ export const MaintenancePlans = ({
 
   const clearAllTasks = () => {
     setSelectedTaskIds([]);
+  };
+
+  const handleEditPlan = (plan: MaintenancePlan) => {
+    setEditingPlan(plan);
+    setFormData({
+      vehicule_id: plan.vehicule_id,
+      start_date: new Date(plan.start_date),
+      start_km: plan.start_km.toString(),
+      statut: plan.statut
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleUpdatePlan = async () => {
+    if (!editingPlan || !updatePlan) return;
+    
+    try {
+      await updatePlan(editingPlan.id, {
+        vehicule_id: formData.vehicule_id,
+        start_date: format(formData.start_date, 'yyyy-MM-dd'),
+        start_km: parseInt(formData.start_km) || 0,
+        statut: formData.statut
+      });
+
+      setShowEditDialog(false);
+      setEditingPlan(null);
+      setFormData({
+        vehicule_id: '',
+        start_date: new Date(),
+        start_km: '',
+        statut: 'actif'
+      });
+    } catch (error) {
+      console.error('Error updating plan:', error);
+    }
+  };
+
+  const handleCreateWorkOrder = async (plan: MaintenancePlan) => {
+    if (!createWorkOrder) return;
+    
+    try {
+      await createWorkOrder({
+        vehicule_id: plan.vehicule_id,
+        plan_id: plan.id,
+        task_id: plan.task_id,
+        due_date: format(new Date(), 'yyyy-MM-dd'),
+        priorite: 'haute',
+        statut: 'ouvert',
+        notes: 'Maintenance programmée immédiatement'
+      });
+    } catch (error) {
+      console.error('Error creating work order:', error);
+    }
   };
 
   const getStatutColor = (statut: string) => {
@@ -387,6 +446,102 @@ export const MaintenancePlans = ({
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Edit Plan Dialog */}
+          <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Modifier le plan de maintenance</DialogTitle>
+              </DialogHeader>
+              
+              <div className="space-y-4 pt-4">
+                <div>
+                  <Label htmlFor="vehicule">Véhicule</Label>
+                  <Select value={formData.vehicule_id} onValueChange={(value) => 
+                    setFormData(prev => ({ ...prev, vehicule_id: value }))
+                  }>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un véhicule" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vehicules.map((vehicule) => (
+                        <SelectItem key={vehicule.id} value={vehicule.id}>
+                          {vehicule.immatriculation} - {vehicule.marque} {vehicule.modele}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="start_date">Date de début</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !formData.start_date && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {formData.start_date ? format(formData.start_date, "dd/MM/yyyy", { locale: fr }) : "Date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={formData.start_date}
+                          onSelect={(date) => date && setFormData(prev => ({ ...prev, start_date: date }))}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="start_km">Km de début</Label>
+                    <Input
+                      id="start_km"
+                      type="number"
+                      value={formData.start_km}
+                      onChange={(e) => setFormData(prev => ({ ...prev, start_km: e.target.value }))}
+                      placeholder="Ex: 50000"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="statut">Statut</Label>
+                  <Select value={formData.statut} onValueChange={(value: 'actif' | 'suspendu') => 
+                    setFormData(prev => ({ ...prev, statut: value }))
+                  }>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="actif">Actif</SelectItem>
+                      <SelectItem value="suspendu">Suspendu</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+                    Annuler
+                  </Button>
+                  <Button 
+                    onClick={handleUpdatePlan}
+                    disabled={!formData.vehicule_id || !formData.start_km}
+                  >
+                    Mettre à jour
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -478,11 +633,21 @@ export const MaintenancePlans = ({
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleEditPlan(plan)}
+                        disabled={!updatePlan}
+                      >
                         <Settings className="h-4 w-4 mr-1" />
                         Modifier
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleCreateWorkOrder(plan)}
+                        disabled={!createWorkOrder}
+                      >
                         <Wrench className="h-4 w-4 mr-1" />
                         Effectuer maintenant
                       </Button>
