@@ -37,6 +37,7 @@ export const MaintenancePlans = ({
   createPlan
 }: MaintenancePlansProps) => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [formData, setFormData] = useState<{
     vehicule_id: string;
     task_id: string;
@@ -55,6 +56,63 @@ export const MaintenancePlans = ({
     statut: 'actif'
   });
 
+  // Maintenance categories
+  const maintenanceCategories = {
+    'maintenance_reguliere': {
+      label: 'Maintenance régulière (préventive)',
+      prefixes: ['VID', 'FIL', 'FLU', 'BOU', 'ECH', 'COU', 'ECL']
+    },
+    'pneumatiques': {
+      label: 'Pneumatiques',
+      prefixes: ['PNE']
+    },
+    'freins': {
+      label: 'Freins',
+      prefixes: ['FRE']
+    },
+    'suspension_direction': {
+      label: 'Suspension et direction',
+      prefixes: ['SUS', 'DIR']
+    },
+    'batterie_electricite': {
+      label: 'Batterie et électricité',
+      prefixes: ['BAT', 'ELE']
+    },
+    'climatisation': {
+      label: 'Climatisation et chauffage',
+      prefixes: ['CLI']
+    },
+    'transmission': {
+      label: 'Transmission et embrayage',
+      prefixes: ['TRA', 'EMB']
+    },
+    'controles_periodiques': {
+      label: 'Contrôles périodiques spécifiques',
+      prefixes: ['ANT', 'CHA', 'PAR', 'ACC']
+    },
+    'nettoyage': {
+      label: 'Nettoyage et entretien esthétique',
+      prefixes: ['NET']
+    },
+    'administratif': {
+      label: 'Maintenance administrative',
+      prefixes: ['ADM']
+    }
+  };
+
+  // Filter tasks based on selected category
+  const getFilteredTasks = () => {
+    if (!selectedCategory) return [];
+    
+    const category = maintenanceCategories[selectedCategory as keyof typeof maintenanceCategories];
+    if (!category) return [];
+    
+    return tasks.filter(task => 
+      task.actif && 
+      category.prefixes.some(prefix => task.code.startsWith(prefix))
+    );
+  };
+
   const handleCreatePlan = async () => {
     try {
       const selectedTask = tasks.find(t => t.id === formData.task_id);
@@ -71,6 +129,7 @@ export const MaintenancePlans = ({
       });
 
       setShowCreateDialog(false);
+      setSelectedCategory('');
       setFormData({
         vehicule_id: '',
         task_id: '',
@@ -149,23 +208,55 @@ export const MaintenancePlans = ({
                 </div>
 
                 <div>
-                  <Label htmlFor="task">Tâche de maintenance</Label>
-                  <Select value={formData.task_id} onValueChange={(value) => {
-                    const selectedTask = tasks.find(t => t.id === value);
+                  <Label htmlFor="category">Catégorie de maintenance</Label>
+                  <Select value={selectedCategory} onValueChange={(value) => {
+                    setSelectedCategory(value);
+                    // Reset task selection when category changes
                     setFormData(prev => ({ 
                       ...prev, 
-                      task_id: value,
-                      interval_km: selectedTask?.interval_km?.toString() || '',
-                      interval_jours: selectedTask?.interval_jours?.toString() || ''
+                      task_id: '',
+                      interval_km: '',
+                      interval_jours: ''
                     }));
                   }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une tâche" />
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Sélectionner une catégorie" />
                     </SelectTrigger>
-                    <SelectContent>
-                      {tasks.filter(t => t.actif).map((task) => (
-                        <SelectItem key={task.id} value={task.id}>
-                          {task.libelle} ({task.code})
+                    <SelectContent className="bg-background border shadow-md z-50">
+                      {Object.entries(maintenanceCategories).map(([key, category]) => (
+                        <SelectItem key={key} value={key} className="hover:bg-accent">
+                          {category.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="task">Tâche de maintenance</Label>
+                  <Select 
+                    value={formData.task_id} 
+                    onValueChange={(value) => {
+                      const selectedTask = getFilteredTasks().find(t => t.id === value);
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        task_id: value,
+                        interval_km: selectedTask?.interval_km?.toString() || '',
+                        interval_jours: selectedTask?.interval_jours?.toString() || ''
+                      }));
+                    }}
+                    disabled={!selectedCategory}
+                  >
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder={!selectedCategory ? "Sélectionner d'abord une catégorie" : "Sélectionner une tâche"} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border shadow-md z-50">
+                      {getFilteredTasks().map((task) => (
+                        <SelectItem key={task.id} value={task.id} className="hover:bg-accent">
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium">{task.libelle}</span>
+                            <span className="text-xs text-muted-foreground">({task.code})</span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
