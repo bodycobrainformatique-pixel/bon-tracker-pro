@@ -38,21 +38,16 @@ export const MaintenancePlans = ({
 }: MaintenancePlansProps) => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [formData, setFormData] = useState<{
     vehicule_id: string;
-    task_id: string;
     start_date: Date;
     start_km: string;
-    interval_km: string;
-    interval_jours: string;
     statut: 'actif' | 'suspendu';
   }>({
     vehicule_id: '',
-    task_id: '',
     start_date: new Date(),
     start_km: '',
-    interval_km: '',
-    interval_jours: '',
     statut: 'actif'
   });
 
@@ -113,35 +108,55 @@ export const MaintenancePlans = ({
     );
   };
 
-  const handleCreatePlan = async () => {
+  const handleCreatePlans = async () => {
     try {
-      const selectedTask = tasks.find(t => t.id === formData.task_id);
-      
-      await createPlan({
-        vehicule_id: formData.vehicule_id,
-        task_id: formData.task_id,
-        start_date: format(formData.start_date, 'yyyy-MM-dd'),
-        start_km: parseInt(formData.start_km) || 0,
-        statut: formData.statut,
-        // Use task defaults or form overrides
-        interval_km: formData.interval_km ? parseInt(formData.interval_km) : selectedTask?.interval_km,
-        interval_jours: formData.interval_jours ? parseInt(formData.interval_jours) : selectedTask?.interval_jours
+      // Create a plan for each selected task
+      const planPromises = selectedTaskIds.map(async (taskId) => {
+        const selectedTask = tasks.find(t => t.id === taskId);
+        
+        return createPlan({
+          vehicule_id: formData.vehicule_id,
+          task_id: taskId,
+          start_date: format(formData.start_date, 'yyyy-MM-dd'),
+          start_km: parseInt(formData.start_km) || 0,
+          statut: formData.statut,
+          // Use task defaults
+          interval_km: selectedTask?.interval_km,
+          interval_jours: selectedTask?.interval_jours
+        });
       });
+
+      await Promise.all(planPromises);
 
       setShowCreateDialog(false);
       setSelectedCategory('');
+      setSelectedTaskIds([]);
       setFormData({
         vehicule_id: '',
-        task_id: '',
         start_date: new Date(),
         start_km: '',
-        interval_km: '',
-        interval_jours: '',
         statut: 'actif'
       });
     } catch (error) {
-      console.error('Error creating plan:', error);
+      console.error('Error creating plans:', error);
     }
+  };
+
+  const toggleTaskSelection = (taskId: string) => {
+    setSelectedTaskIds(prev => 
+      prev.includes(taskId) 
+        ? prev.filter(id => id !== taskId)
+        : [...prev, taskId]
+    );
+  };
+
+  const selectAllTasks = () => {
+    const filteredTasks = getFilteredTasks();
+    setSelectedTaskIds(filteredTasks.map(task => task.id));
+  };
+
+  const clearAllTasks = () => {
+    setSelectedTaskIds([]);
   };
 
   const getStatutColor = (statut: string) => {
@@ -233,34 +248,73 @@ export const MaintenancePlans = ({
                 </div>
 
                 <div>
-                  <Label htmlFor="task">Tâche de maintenance</Label>
-                  <Select 
-                    value={formData.task_id} 
-                    onValueChange={(value) => {
-                      const selectedTask = getFilteredTasks().find(t => t.id === value);
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        task_id: value,
-                        interval_km: selectedTask?.interval_km?.toString() || '',
-                        interval_jours: selectedTask?.interval_jours?.toString() || ''
-                      }));
-                    }}
-                    disabled={!selectedCategory}
-                  >
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder={!selectedCategory ? "Sélectionner d'abord une catégorie" : "Sélectionner une tâche"} />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background border shadow-md z-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Tâches de maintenance</Label>
+                    {selectedCategory && getFilteredTasks().length > 0 && (
+                      <div className="flex gap-2 text-xs">
+                        <Button 
+                          type="button"
+                          variant="ghost" 
+                          size="sm"
+                          onClick={selectAllTasks}
+                          className="px-2 py-1 h-auto"
+                        >
+                          Tout sélectionner
+                        </Button>
+                        <Button 
+                          type="button"
+                          variant="ghost" 
+                          size="sm"
+                          onClick={clearAllTasks}
+                          className="px-2 py-1 h-auto"
+                        >
+                          Désélectionner
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {!selectedCategory ? (
+                    <div className="p-4 border rounded-md bg-muted/50 text-center text-sm text-muted-foreground">
+                      Sélectionner d'abord une catégorie
+                    </div>
+                  ) : getFilteredTasks().length === 0 ? (
+                    <div className="p-4 border rounded-md bg-muted/50 text-center text-sm text-muted-foreground">
+                      Aucune tâche disponible dans cette catégorie
+                    </div>
+                  ) : (
+                    <div className="border rounded-md bg-background max-h-60 overflow-y-auto">
                       {getFilteredTasks().map((task) => (
-                        <SelectItem key={task.id} value={task.id} className="hover:bg-accent">
-                          <div className="flex flex-col items-start">
-                            <span className="font-medium">{task.libelle}</span>
-                            <span className="text-xs text-muted-foreground">({task.code})</span>
+                        <div 
+                          key={task.id} 
+                          className="flex items-start space-x-3 p-3 hover:bg-accent cursor-pointer border-b last:border-b-0"
+                          onClick={() => toggleTaskSelection(task.id)}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedTaskIds.includes(task.id)}
+                            onChange={() => toggleTaskSelection(task.id)}
+                            className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm">{task.libelle}</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Code: {task.code}
+                              {task.interval_km && ` • ${task.interval_km.toLocaleString()} km`}
+                              {task.interval_jours && ` • ${task.interval_jours} jours`}
+                              {task.duree_estimee_min && ` • ${task.duree_estimee_min} min`}
+                            </div>
                           </div>
-                        </SelectItem>
+                        </div>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </div>
+                  )}
+                  
+                  {selectedTaskIds.length > 0 && (
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      {selectedTaskIds.length} tâche(s) sélectionnée(s)
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -303,29 +357,6 @@ export const MaintenancePlans = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="interval_km">Intervalle (km)</Label>
-                    <Input
-                      id="interval_km"
-                      type="number"
-                      value={formData.interval_km}
-                      onChange={(e) => setFormData(prev => ({ ...prev, interval_km: e.target.value }))}
-                      placeholder="Ex: 10000"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="interval_jours">Intervalle (jours)</Label>
-                    <Input
-                      id="interval_jours"
-                      type="number"
-                      value={formData.interval_jours}
-                      onChange={(e) => setFormData(prev => ({ ...prev, interval_jours: e.target.value }))}
-                      placeholder="Ex: 365"
-                    />
-                  </div>
-                </div>
 
                 <div>
                   <Label htmlFor="statut">Statut</Label>
@@ -347,10 +378,10 @@ export const MaintenancePlans = ({
                     Annuler
                   </Button>
                   <Button 
-                    onClick={handleCreatePlan}
-                    disabled={!formData.vehicule_id || !formData.task_id || !formData.start_km}
+                    onClick={handleCreatePlans}
+                    disabled={!formData.vehicule_id || selectedTaskIds.length === 0 || !formData.start_km}
                   >
-                    Créer le plan
+                    Créer {selectedTaskIds.length > 1 ? `${selectedTaskIds.length} plans` : 'le plan'}
                   </Button>
                 </div>
               </div>
