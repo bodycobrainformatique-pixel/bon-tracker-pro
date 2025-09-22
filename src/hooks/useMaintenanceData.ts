@@ -228,6 +228,9 @@ export const useMaintenanceData = () => {
         description: "Plan de maintenance créé avec succès",
       });
 
+      // Refresh data to show the new plan
+      await loadInitialData();
+
       return data;
     } catch (error) {
       console.error('Error creating maintenance plan:', error);
