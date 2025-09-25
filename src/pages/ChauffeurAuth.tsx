@@ -9,8 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, User } from 'lucide-react';
 
 export default function ChauffeurAuth() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('chauffeur@gss.com');
+  const [password, setPassword] = useState('chauffeur123..');
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
