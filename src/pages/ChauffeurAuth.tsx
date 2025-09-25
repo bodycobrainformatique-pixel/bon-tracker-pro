@@ -12,7 +12,7 @@ export default function ChauffeurAuth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
+  
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -31,31 +31,14 @@ export default function ChauffeurAuth() {
     setLoading(true);
 
     try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/chauffeur`
-          }
-        });
-        
-        if (error) throw error;
-        
-        toast({
-          title: "Compte créé",
-          description: "Vérifiez votre email pour confirmer votre compte.",
-        });
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        
-        if (error) throw error;
-        
-        navigate('/chauffeur');
-      }
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      
+      navigate('/chauffeur');
     } catch (error: any) {
       toast({
         title: "Erreur",
@@ -76,10 +59,7 @@ export default function ChauffeurAuth() {
           </div>
           <CardTitle>Connexion Chauffeur</CardTitle>
           <CardDescription>
-            {isSignUp 
-              ? "Créez votre compte chauffeur" 
-              : "Connectez-vous à votre espace chauffeur"
-            }
+            Connectez-vous à votre espace chauffeur
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -112,22 +92,9 @@ export default function ChauffeurAuth() {
               disabled={loading}
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isSignUp ? "Créer un compte" : "Se connecter"}
+              Se connecter
             </Button>
           </form>
-          
-          <div className="mt-4 text-center">
-            <Button 
-              variant="ghost" 
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-sm"
-            >
-              {isSignUp 
-                ? "Déjà un compte ? Se connecter" 
-                : "Pas de compte ? S'inscrire"
-              }
-            </Button>
-          </div>
         </CardContent>
       </Card>
     </div>
