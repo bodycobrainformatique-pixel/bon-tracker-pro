@@ -6,12 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, User } from 'lucide-react';
+import { Loader2, User, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { loginSchema } from '@/lib/validation/auth';
 
 export default function ChauffeurAuth() {
-  const [email, setEmail] = useState('chauffeur@gss.com');
-  const [password, setPassword] = useState('chauffeur@123.');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -29,22 +32,39 @@ export default function ChauffeurAuth() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrors({});
 
     try {
+      // Validate form data
+      const validatedData = loginSchema.parse({ email, password });
+      
       const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: validatedData.email,
+        password: validatedData.password,
       });
       
       if (error) throw error;
       
       navigate('/chauffeur');
     } catch (error: any) {
-      toast({
-        title: "Erreur",
-        description: error.message,
-        variant: "destructive",
-      });
+      if (error.errors) {
+        // Zod validation errors
+        const newErrors: { email?: string; password?: string } = {};
+        error.errors.forEach((err: any) => {
+          if (err.path[0] === 'email') newErrors.email = err.message;
+          if (err.path[0] === 'password') newErrors.password = err.message;
+        });
+        setErrors(newErrors);
+      } else {
+        // Supabase auth errors
+        toast({
+          title: "Erreur de connexion",
+          description: error.message === "Invalid login credentials" 
+            ? "Email ou mot de passe incorrect" 
+            : error.message,
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -69,11 +89,15 @@ export default function ChauffeurAuth() {
               <Input
                 id="email"
                 type="email"
-                placeholder="votre@email.com"
+                placeholder="chauffeur@gss.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className={errors.email ? 'border-destructive' : ''}
                 required
               />
+              {errors.email && (
+                <p className="text-sm text-destructive">{errors.email}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Mot de passe</Label>
@@ -83,8 +107,12 @@ export default function ChauffeurAuth() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className={errors.password ? 'border-destructive' : ''}
                 required
               />
+              {errors.password && (
+                <p className="text-sm text-destructive">{errors.password}</p>
+              )}
             </div>
             <Button 
               type="submit" 

@@ -798,6 +798,26 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_vehicle_current_km: {
+        Args: { vehicle_id_param?: string }
+        Returns: {
+          current_km: number
+          immatriculation: string
+          vehicule_id: string
+        }[]
+      }
+      get_vehicle_daily_stats: {
+        Args: { vehicle_id_param?: string }
+        Returns: {
+          cout_tnd: number
+          immatriculation: string
+          jour: string
+          km_total: number
+          l_per_100km: number
+          litres_total: number
+          vehicule_id: string
+        }[]
+      }
       maintenance_check_due: {
         Args: { vehicule_id: string }
         Returns: undefined

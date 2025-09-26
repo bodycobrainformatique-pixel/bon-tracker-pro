@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Camera, Upload, X } from 'lucide-react';
 import type { Vehicule, Chauffeur } from '@/types';
+import { bonSchema } from '@/lib/validation/forms';
 
 interface ChauffeurBonFormProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ export default function ChauffeurBonForm({ isOpen, onClose, onSuccess }: Chauffe
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -134,12 +136,13 @@ export default function ChauffeurBonForm({ isOpen, onClose, onSuccess }: Chauffe
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationErrors({});
     
     if (!imageFile) {
       toast({
-        title: "Erreur",
-        description: "La photo du compteur est obligatoire",
-        variant: "destructive",
+        title: "Photo obligatoire",
+        description: "Veuillez prendre une photo du compteur kilométrique",
+        variant: "destructive"
       });
       return;
     }
@@ -147,6 +150,18 @@ export default function ChauffeurBonForm({ isOpen, onClose, onSuccess }: Chauffe
     setLoading(true);
     
     try {
+      // Validate form data
+      const validatedData = bonSchema.parse({
+        numero: formData.numero,
+        date: formData.date,
+        type: formData.type,
+        montant: parseFloat(formData.montant),
+        vehicule_id: formData.vehiculeId,
+        chauffeur_id: formData.chauffeurId,
+        km_initial: formData.kmInitial ? parseFloat(formData.kmInitial) : 0,
+        notes: formData.notes
+      });
+      
       // Upload image first
       const imageUrl = await uploadImage(imageFile);
       
@@ -156,14 +171,7 @@ export default function ChauffeurBonForm({ isOpen, onClose, onSuccess }: Chauffe
       
       // Create bon
       const { error } = await supabase.from('bons').insert({
-        numero: formData.numero,
-        date: formData.date,
-        type: formData.type,
-        montant: parseFloat(formData.montant),
-        vehicule_id: formData.vehiculeId,
-        chauffeur_id: formData.chauffeurId,
-        km_initial: formData.kmInitial ? parseFloat(formData.kmInitial) : null,
-        notes: formData.notes || null,
+        ...validatedData,
         odometer_image_url: imageUrl
       });
       
@@ -181,14 +189,24 @@ export default function ChauffeurBonForm({ isOpen, onClose, onSuccess }: Chauffe
         notes: ''
       });
       removeImage();
+      setValidationErrors({});
       
       onSuccess();
     } catch (error: any) {
-      toast({
-        title: "Erreur",
-        description: error.message,
-        variant: "destructive",
-      });
+      if (error.errors) {
+        // Zod validation errors
+        const newErrors: Record<string, string> = {};
+        error.errors.forEach((err: any) => {
+          if (err.path[0]) newErrors[err.path[0]] = err.message;
+        });
+        setValidationErrors(newErrors);
+      } else {
+        toast({
+          title: "Erreur",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoading(false);
     }
