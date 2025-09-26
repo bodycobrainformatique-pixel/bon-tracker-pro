@@ -200,16 +200,16 @@ export default function ChauffeurBonForm({ isOpen, onClose, onSuccess }: Chauffe
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto">
         <DialogHeader>
-          <DialogTitle>Nouveau Bon de Carburant</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-lg sm:text-xl">Nouveau Bon de Carburant</DialogTitle>
+          <DialogDescription className="text-sm">
             Remplissez les informations du bon et ajoutez une photo du compteur
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="numero">Numéro du bon *</Label>
               <Input
@@ -323,16 +323,16 @@ export default function ChauffeurBonForm({ isOpen, onClose, onSuccess }: Chauffe
             </Label>
             
             {!imagePreview ? (
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-                <Camera className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 sm:p-8 text-center">
+                <Camera className="w-8 h-8 sm:w-12 sm:h-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
                 <div className="space-y-2">
-                  <p className="text-lg font-medium">Ajouter une photo du compteur</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-base sm:text-lg font-medium">Ajouter une photo du compteur</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground px-2">
                     Prenez une photo claire du compteur kilométrique
                   </p>
                 </div>
                 <Label htmlFor="image-upload" className="cursor-pointer">
-                  <Button type="button" className="mt-4" asChild>
+                  <Button type="button" className="mt-3 sm:mt-4 w-full sm:w-auto" size="sm" asChild>
                     <span>
                       <Upload className="w-4 h-4 mr-2" />
                       Choisir une photo
@@ -374,11 +374,11 @@ export default function ChauffeurBonForm({ isOpen, onClose, onSuccess }: Chauffe
             )}
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={onClose}>
+          <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-2 pt-4 border-t">
+            <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
               Annuler
             </Button>
-            <Button type="submit" disabled={loading || !imageFile}>
+            <Button type="submit" disabled={loading || !imageFile} className="w-full sm:w-auto">
               {loading ? "Création..." : "Créer le bon"}
             </Button>
           </div>
