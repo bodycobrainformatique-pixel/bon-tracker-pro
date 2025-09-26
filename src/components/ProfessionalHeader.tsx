@@ -271,6 +271,10 @@ export const ProfessionalHeader = ({
                     <Settings className="w-4 h-4 mr-2" />
                     Paramètres rapides
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => window.open('/chauffeur/auth', '_blank')}>
+                    <Users className="w-4 h-4 mr-2" />
+                    Accès Chauffeur
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={onSignOut}>
                     <LogOut className="w-4 h-4 mr-2" />

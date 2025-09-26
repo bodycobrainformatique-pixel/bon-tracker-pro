@@ -106,6 +106,7 @@ export type Database = {
           montant: number
           notes: string | null
           numero: string
+          odometer_image_url: string | null
           status: string
           type: string
           updated_at: string
@@ -124,6 +125,7 @@ export type Database = {
           montant: number
           notes?: string | null
           numero: string
+          odometer_image_url?: string | null
           status?: string
           type: string
           updated_at?: string
@@ -142,6 +144,7 @@ export type Database = {
           montant?: number
           notes?: string | null
           numero?: string
+          odometer_image_url?: string | null
           status?: string
           type?: string
           updated_at?: string

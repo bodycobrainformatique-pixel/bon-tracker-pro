@@ -14,6 +14,7 @@ export interface Bon {
   kmFinal?: number;
   distance?: number;
   notes?: string;
+  odometerImageUrl?: string;
   createdAt: string;
   updatedAt: string;
 }

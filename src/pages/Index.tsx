@@ -17,9 +17,9 @@ const Index = () => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        if (!session?.user && event === 'SIGNED_OUT') {
-          navigate('/auth');
-        }
+      if (!session?.user && event === 'SIGNED_OUT') {
+        navigate('/');
+      }
         setLoading(false);
       }
     );
@@ -30,7 +30,7 @@ const Index = () => {
       setUser(session?.user ?? null);
       
       if (!session?.user) {
-        navigate('/auth');
+        navigate('/');
       }
       setLoading(false);
     });
