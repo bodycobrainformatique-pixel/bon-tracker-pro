@@ -660,6 +660,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          chauffeur_id: string | null
           created_at: string
           email: string
           full_name: string | null
@@ -669,6 +670,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          chauffeur_id?: string | null
           created_at?: string
           email: string
           full_name?: string | null
@@ -678,6 +680,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          chauffeur_id?: string | null
           created_at?: string
           email?: string
           full_name?: string | null
@@ -686,7 +689,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_chauffeur_id_fkey"
+            columns: ["chauffeur_id"]
+            isOneToOne: false
+            referencedRelation: "chauffeurs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vehicules: {
         Row: {

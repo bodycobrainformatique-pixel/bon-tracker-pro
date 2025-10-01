@@ -57,22 +57,14 @@ export default function ChauffeurBonForm({ isOpen, onClose, onSuccess }: Chauffe
         return;
       }
 
-      // Get user's profile to find their chauffeur_id
-      const { data: profile } = await supabase
+      // Get user's profile with direct chauffeur_id link
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('email')
+        .select('chauffeur_id')
         .eq('user_id', user.id)
         .single();
 
-      // Find the chauffeur record that matches the user's email
-      const { data: chauffeurData, error: chauffeurError } = await supabase
-        .from('chauffeurs')
-        .select('id')
-        .eq('email', profile?.email || user.email)
-        .eq('statut', 'actif')
-        .maybeSingle();
-
-      if (!chauffeurData || chauffeurError) {
+      if (profileError || !profile?.chauffeur_id) {
         toast({
           title: "Erreur",
           description: "Impossible de trouver votre profil chauffeur. Contactez l'administrateur.",
@@ -83,7 +75,7 @@ export default function ChauffeurBonForm({ isOpen, onClose, onSuccess }: Chauffe
       }
 
       // Automatically set the logged-in chauffeur's ID
-      setFormData(prev => ({ ...prev, chauffeurId: chauffeurData.id }));
+      setFormData(prev => ({ ...prev, chauffeurId: profile.chauffeur_id }));
 
       const [vehiculesRes, chauffeursRes] = await Promise.all([
         supabase.from('vehicules').select('*').eq('statut', 'en_service'),
