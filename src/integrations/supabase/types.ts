@@ -73,6 +73,13 @@ export type Database = {
             foreignKeyName: "anomalies_vehicule_id_fkey"
             columns: ["vehicule_id"]
             isOneToOne: false
+            referencedRelation: "v_vehicule_daily_stats"
+            referencedColumns: ["vehicule_id"]
+          },
+          {
+            foreignKeyName: "anomalies_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
             referencedRelation: "v_vehicule_km_current"
             referencedColumns: ["vehicule_id"]
           },
@@ -157,6 +164,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "chauffeurs"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bons_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "v_vehicule_daily_stats"
+            referencedColumns: ["vehicule_id"]
           },
           {
             foreignKeyName: "bons_vehicule_id_fkey"
@@ -308,6 +322,13 @@ export type Database = {
             foreignKeyName: "maintenance_events_vehicule_id_fkey"
             columns: ["vehicule_id"]
             isOneToOne: false
+            referencedRelation: "v_vehicule_daily_stats"
+            referencedColumns: ["vehicule_id"]
+          },
+          {
+            foreignKeyName: "maintenance_events_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
             referencedRelation: "v_vehicule_km_current"
             referencedColumns: ["vehicule_id"]
           },
@@ -384,6 +405,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "maintenance_tasks"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_plans_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "v_vehicule_daily_stats"
+            referencedColumns: ["vehicule_id"]
           },
           {
             foreignKeyName: "maintenance_plans_vehicule_id_fkey"
@@ -510,6 +538,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "maintenance_tasks"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_work_orders_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "v_vehicule_daily_stats"
+            referencedColumns: ["vehicule_id"]
           },
           {
             foreignKeyName: "maintenance_work_orders_vehicule_id_fkey"
@@ -752,29 +787,7 @@ export type Database = {
           litres_total: number | null
           vehicule_id: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "bons_vehicule_id_fkey"
-            columns: ["vehicule_id"]
-            isOneToOne: false
-            referencedRelation: "v_vehicule_km_current"
-            referencedColumns: ["vehicule_id"]
-          },
-          {
-            foreignKeyName: "bons_vehicule_id_fkey"
-            columns: ["vehicule_id"]
-            isOneToOne: false
-            referencedRelation: "vehicules"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bons_vehicule_id_fkey"
-            columns: ["vehicule_id"]
-            isOneToOne: false
-            referencedRelation: "vehicules_current_odometer"
-            referencedColumns: ["vehicule_id"]
-          },
-        ]
+        Relationships: []
       }
       v_vehicule_km_current: {
         Row: {
