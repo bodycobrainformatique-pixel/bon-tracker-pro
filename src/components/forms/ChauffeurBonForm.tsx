@@ -46,6 +46,30 @@ export default function ChauffeurBonForm({ isOpen, onClose, onSuccess }: Chauffe
 
   const loadData = async () => {
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Non connecté');
+
+      // Get user's profile to find their chauffeur_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('user_id', user.id)
+        .single();
+
+      // Find the chauffeur record that matches the user's email
+      const { data: chauffeurData } = await supabase
+        .from('chauffeurs')
+        .select('id')
+        .eq('email', profile?.email || user.email)
+        .eq('statut', 'actif')
+        .single();
+
+      if (chauffeurData) {
+        // Automatically set the logged-in chauffeur's ID
+        setFormData(prev => ({ ...prev, chauffeurId: chauffeurData.id }));
+      }
+
       const [vehiculesRes, chauffeursRes] = await Promise.all([
         supabase.from('vehicules').select('*').eq('statut', 'en_service'),
         supabase.from('chauffeurs').select('*').eq('statut', 'actif')
@@ -294,21 +318,7 @@ export default function ChauffeurBonForm({ isOpen, onClose, onSuccess }: Chauffe
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="chauffeur">Chauffeur *</Label>
-              <Select value={formData.chauffeurId} onValueChange={(value) => handleInputChange('chauffeurId', value)} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un chauffeur" />
-                </SelectTrigger>
-                <SelectContent>
-                  {chauffeurs.map((chauffeur) => (
-                    <SelectItem key={chauffeur.id} value={chauffeur.id}>
-                      {chauffeur.prenom} {chauffeur.nom}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Chauffeur is automatically set to logged-in user, no need to show dropdown */}
 
             <div className="space-y-2">
               <Label htmlFor="kmInitial">Kilométrage initial</Label>
