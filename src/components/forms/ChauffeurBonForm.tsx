@@ -48,7 +48,14 @@ export default function ChauffeurBonForm({ isOpen, onClose, onSuccess }: Chauffe
     try {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Non connecté');
+      if (!user) {
+        toast({
+          title: "Erreur",
+          description: "Vous devez être connecté",
+          variant: "destructive",
+        });
+        return;
+      }
 
       // Get user's profile to find their chauffeur_id
       const { data: profile } = await supabase
@@ -58,17 +65,25 @@ export default function ChauffeurBonForm({ isOpen, onClose, onSuccess }: Chauffe
         .single();
 
       // Find the chauffeur record that matches the user's email
-      const { data: chauffeurData } = await supabase
+      const { data: chauffeurData, error: chauffeurError } = await supabase
         .from('chauffeurs')
         .select('id')
         .eq('email', profile?.email || user.email)
         .eq('statut', 'actif')
-        .single();
+        .maybeSingle();
 
-      if (chauffeurData) {
-        // Automatically set the logged-in chauffeur's ID
-        setFormData(prev => ({ ...prev, chauffeurId: chauffeurData.id }));
+      if (!chauffeurData || chauffeurError) {
+        toast({
+          title: "Erreur",
+          description: "Impossible de trouver votre profil chauffeur. Contactez l'administrateur.",
+          variant: "destructive",
+        });
+        onClose();
+        return;
       }
+
+      // Automatically set the logged-in chauffeur's ID
+      setFormData(prev => ({ ...prev, chauffeurId: chauffeurData.id }));
 
       const [vehiculesRes, chauffeursRes] = await Promise.all([
         supabase.from('vehicules').select('*').eq('statut', 'en_service'),
@@ -166,6 +181,15 @@ export default function ChauffeurBonForm({ isOpen, onClose, onSuccess }: Chauffe
       toast({
         title: "Photo obligatoire",
         description: "Veuillez prendre une photo du compteur kilométrique",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.chauffeurId) {
+      toast({
+        title: "Erreur",
+        description: "Votre profil chauffeur n'a pas été identifié. Veuillez réessayer.",
         variant: "destructive"
       });
       return;
