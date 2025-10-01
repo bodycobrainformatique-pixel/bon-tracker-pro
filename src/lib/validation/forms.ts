@@ -61,7 +61,7 @@ export const bonSchema = z.object({
     .string()
     .min(1, { message: "La date est obligatoire" }),
   type: z
-    .enum(['essence', 'diesel', 'hybride'], { message: "Type de carburant invalide" }),
+    .enum(['gasoil', 'essence', 'gasoil50'], { message: "Type de carburant invalide" }),
   montant: z
     .number()
     .positive({ message: "Le montant doit être positif" })
@@ -106,7 +106,7 @@ export const vehiculeSchema = z.object({
     .min(1900, { message: "Année invalide" })
     .max(new Date().getFullYear() + 1, { message: "Année invalide" }),
   type_carburant: z
-    .enum(['essence', 'diesel', 'hybride'], { message: "Type de carburant invalide" }),
+    .enum(['gasoil', 'essence', 'gasoil50'], { message: "Type de carburant invalide" }),
   couleur: z
     .string()
     .max(30, { message: "La couleur doit faire moins de 30 caractères" })
